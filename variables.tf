@@ -57,10 +57,14 @@ variable "private_subnets" {
 variable "db_creds" {
   description = "Map of database credentials"
   sensitive   = true
-  type = map(object({
+  type = object({
     username = string
     password = string
-  }))
+  })
+  default = {
+    username = "devops"
+    password = "devops123"
+  }
 }
 
 variable "db_instance_class" {
