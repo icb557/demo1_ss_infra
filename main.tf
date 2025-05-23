@@ -145,6 +145,17 @@ resource "aws_network_acl_rule" "allow_in_jenkins_acl" {
   to_port        = 8080
 }
 
+resource "aws_network_acl_rule" "allow_in_ephemeral_ports_acl" {
+  network_acl_id = aws_network_acl.demo1_public_sub_acl.id
+  rule_number    = 140              
+  egress         = false
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = "0.0.0.0/0"
+  from_port      = 1024
+  to_port        = 65535
+}
+
 resource "aws_network_acl_rule" "allow_in_db_acl" {
   network_acl_id = aws_network_acl.demo1_private_sub_acl.id
   rule_number    = 100
@@ -163,6 +174,17 @@ resource "aws_network_acl_rule" "allow_out_pub_sub_acl" {
   protocol       = "tcp"
   rule_action    = "allow"
   cidr_block     = "0.0.0.0/0"
+  from_port      = 0
+  to_port        = 65535
+}
+
+resource "aws_network_acl_rule" "allow_inner_out_pub_sub_acl" {
+  network_acl_id = aws_network_acl.demo1_public_sub_acl.id
+  rule_number    = 110
+  egress         = true
+  protocol       = "-1"
+  rule_action    = "allow"
+  cidr_block     = var.vpc_cidr
   from_port      = 0
   to_port        = 65535
 }
