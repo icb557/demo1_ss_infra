@@ -82,7 +82,7 @@ resource "aws_route_table_association" "demo1_private_rt_assoc" {
 }
 
 resource "aws_network_acl" "demo1_public_sub_acl" {
-  vpc_id = aws_vpc.main.id
+  vpc_id = aws_vpc.demo1.id
 
   tags = {
     Name = "demo1_public_sub_acl"
@@ -91,7 +91,7 @@ resource "aws_network_acl" "demo1_public_sub_acl" {
 }
 
 resource "aws_network_acl" "demo1_private_sub_acl" {
-  vpc_id = aws_vpc.main.id
+  vpc_id = aws_vpc.demo1.id
 
   tags = {
     Name = "demo1_private_sub_acl"
@@ -156,38 +156,15 @@ resource "aws_network_acl_rule" "allow_in_db_acl" {
   to_port        = 5432
 }
 
-resource "aws_network_acl_rule" "allow_out_http_acl" {
+resource "aws_network_acl_rule" "allow_out_pub_sub_acl" {
   network_acl_id = aws_network_acl.demo1_public_sub_acl.id
   rule_number    = 100
   egress         = true
   protocol       = "tcp"
   rule_action    = "allow"
   cidr_block     = "0.0.0.0/0"
-  from_port      = 80
-  to_port        = 80
-}
-
-resource "aws_network_acl_rule" "allow_out_https_acl" {
-  network_acl_id = aws_network_acl.demo1_public_sub_acl.id
-  rule_number    = 110
-  egress         = true
-  protocol       = "tcp"
-  rule_action    = "allow"
-  cidr_block     = "0.0.0.0/0"
-  from_port      = 443
-  to_port        = 443
-}
-
-resource "aws_network_acl_rule" "allow_out_ssh_acl" {
-  for_each       = toset(local.admins_ips)
-  network_acl_id = aws_network_acl.demo1_public_sub_acl.id
-  rule_number    = 120
-  egress         = true
-  protocol       = "tcp"
-  rule_action    = "allow"
-  cidr_block     = each.value
-  from_port      = 22
-  to_port        = 22
+  from_port      = 0
+  to_port        = 65535
 }
 
 resource "aws_network_acl_rule" "allow_out_db_acl" {
@@ -291,42 +268,22 @@ resource "aws_vpc_security_group_ingress_rule" "allow_in_db_traffic" {
   description                  = "Allow inbound db traffic from app servers"
 }
 
-resource "aws_vpc_security_group_egress_rule" "allow_out_http_traffic" {
+resource "aws_vpc_security_group_egress_rule" "allow_out_app_server_traffic" {
   security_group_id = aws_security_group.demo1_app_server_sg.id
   cidr_ipv4         = "0.0.0.0/0"
-  from_port         = 80
-  ip_protocol       = "tcp"
-  to_port           = 80
-  description       = "Allow outbound HTTP to anywhere"
+  from_port         = -1
+  ip_protocol       = "-1"
+  to_port           = -1
+  description       = "Allow outbound traffic to anywhere"
 }
 
-resource "aws_vpc_security_group_egress_rule" "allow_out_https_traffic" {
-  for_each          = local.my_sgs
-  security_group_id = each.value
+resource "aws_vpc_security_group_egress_rule" "allow_out_cicd_server_traffic" {
+  security_group_id = aws_security_group.demo1_cicd_server_sg.id
   cidr_ipv4         = "0.0.0.0/0"
-  from_port         = 443
-  ip_protocol       = "tcp"
-  to_port           = 443
-  description       = "Allow outbound HTTPS to anywhere"
-}
-
-resource "aws_vpc_security_group_egress_rule" "allow_out_ssh_traffic" {
-  for_each          = local.sg_ip_pairs
-  security_group_id = local.my_sgs[each.value.sg_key]
-  cidr_ipv4         = each.value.ip
-  from_port         = 22
-  ip_protocol       = "tcp"
-  to_port           = 22
-  description       = "Allow outbound SSH to admins IPs"
-}
-
-resource "aws_vpc_security_group_egress_rule" "allow_out_postgres_traffic" {
-  security_group_id            = aws_security_group.demo1_db_server_sg.id
-  referenced_security_group_id = aws_security_group.demo1_db_server_sg.id
-  from_port                    = 5432
-  ip_protocol                  = "tcp"
-  to_port                      = 5432
-  description                  = "Allow outbound traffic from app servers to DB servers"
+  from_port         = -1
+  ip_protocol       = "-1"
+  to_port           = -1
+  description       = "Allow outbound traffic to anywhere"
 }
 
 resource "aws_vpc_security_group_egress_rule" "allow_out_db_traffic" {
@@ -357,7 +314,7 @@ resource "aws_instance" "demo1_app_server1" {
   ami           = data.aws_ami.server_ami.id
   instance_type = "t2.micro"
   key_name      = aws_key_pair.demo1_ec2_key.id
-  user_data     = file("userdata.tpl")
+  #user_data     = file("userdata.tpl")
 
   network_interface {
     network_interface_id = aws_network_interface.ec2_nic1_as1.id
@@ -391,18 +348,8 @@ resource "aws_db_subnet_group" "demo1_db_subnet_group" {
 }
 
 resource "aws_db_parameter_group" "demo1_db_parameter_group" {
-  name   = "rds-pg-postgres"
-  family = "postgres16"
-
-  parameter {
-    name  = "character_set_server"
-    value = "utf8"
-  }
-
-  parameter {
-    name  = "character_set_client"
-    value = "utf8"
-  }
+  name   = "rds-pg-postgres-17"
+  family = "postgres17"
 
   parameter {
     name  = "log_connections"
@@ -423,12 +370,13 @@ resource "aws_db_instance" "demo1_primary_db" {
   parameter_group_name    = aws_db_parameter_group.demo1_db_parameter_group.name
   instance_class          = var.db_instance_class
   engine                  = "postgres"
-  engine_version          = "17.5"
+  engine_version          = "17.4"
   db_name                 = "demo1_db"
   db_subnet_group_name    = aws_db_subnet_group.demo1_db_subnet_group.name
   backup_retention_period = 1
   allocated_storage       = 15
-  multi_az                = true
+  storage_type           = "gp2"
+  multi_az                = false
 
   vpc_security_group_ids = [aws_security_group.demo1_db_server_sg.id]
 
@@ -438,23 +386,23 @@ resource "aws_db_instance" "demo1_primary_db" {
   }
 }
 
-resource "aws_db_instance" "demo1_read_replica_db" {
-  skip_final_snapshot     = true
-  replicate_source_db     = aws_db_instance.demo1_primary_db.identifier
-  publicly_accessible     = false
-  parameter_group_name    = aws_db_parameter_group.demo1_db_parameter_group.name
-  instance_class          = var.db_instance_class
-  identifier              = "demo1_read_replica_db"
-  backup_retention_period = 1
-  apply_immediately       = true
+# resource "aws_db_instance" "demo1_read_replica_db" {
+#   skip_final_snapshot     = true
+#   replicate_source_db     = aws_db_instance.demo1_primary_db.identifier
+#   publicly_accessible     = false
+#   parameter_group_name    = aws_db_parameter_group.demo1_db_parameter_group.name
+#   instance_class          = var.db_instance_class
+#   identifier              = "demo1-read-replica-db"
+#   backup_retention_period = 1
+#   apply_immediately       = true
 
-  vpc_security_group_ids = [aws_security_group.demo1_db_server_sg.id]
+#   vpc_security_group_ids = [aws_security_group.demo1_db_server_sg.id]
 
-  tags = {
-    Replica = "true"
-    Name    = "demo1_read_replica_db"
-    Env     = "${var.env}"
-  }
-}
+#   tags = {
+#     Replica = "true"
+#     Name    = "demo1_read_replica_db"
+#     Env     = "${var.env}"
+#   }
+# }
 
 
