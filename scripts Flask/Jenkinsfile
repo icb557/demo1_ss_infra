@@ -1,0 +1,153 @@
+pipeline {
+    agent any
+    
+    environment {
+        PYTHON_PATH = '/usr/bin/python3'
+        APP_NAME = 'flask-app'
+        APP_PORT = '5000'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "Código descargado para ${env.JOB_NAME} - Build ${env.BUILD_NUMBER}"
+            }
+        }
+        
+        stage('Setup Python Environment') {
+            steps {
+                sh '''
+                    echo "Configurando entorno Python..."
+                    python3 -m venv venv
+                    source venv/bin/activate
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
+                '''
+            }
+        }
+        
+        stage('Run Tests') {
+            steps {
+                sh '''
+                    echo "Ejecutando tests..."
+                    source venv/bin/activate
+                    python -m pytest tests/ -v --junitxml=test-results.xml
+                '''
+            }
+            post {
+                always {
+                    junit 'test-results.xml'
+                }
+            }
+        }
+        
+        stage('Code Quality Check') {
+            steps {
+                sh '''
+                    source venv/bin/activate
+                    echo "Verificando calidad de código..."
+                    flake8 app.py --max-line-length=120 || true
+                '''
+            }
+        }
+        
+        stage('Build Application') {
+            steps {
+                sh '''
+                    echo "Preparando aplicación para deploy..."
+                    source venv/bin/activate
+                    
+                    # Verificar que la app inicia correctamente
+                    timeout 10s python app.py &
+                    sleep 5
+                    
+                    # Test básico de conectividad
+                    curl -f http://localhost:${APP_PORT}/ || exit 1
+                    
+                    echo "Aplicación verificada correctamente"
+                '''
+            }
+        }
+        
+        stage('Deploy to Staging') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                script {
+                    def appServerIP = sh(
+                        script: "cd ../terraform && terraform output -raw app_server_ip",
+                        returnStdout: true
+                    ).trim()
+                    
+                    sh """
+                        echo "Desplegando a staging: ${appServerIP}"
+                        scp -r . ubuntu@${appServerIP}:/tmp/flask-app/
+                        ssh ubuntu@${appServerIP} 'sudo /tmp/flask-app/scripts/deploy.sh staging'
+                    """
+                }
+            }
+        }
+        
+        stage('Deploy to Production') {
+            when {
+                branch 'main'
+            }
+            steps {
+                input message: '¿Desplegar a producción?', ok: 'Deploy!'
+                
+                script {
+                    def appServerIP = sh(
+                        script: "cd ../terraform && terraform output -raw app_server_ip",
+                        returnStdout: true
+                    ).trim()
+                    
+                    sh """
+                        echo "Desplegando a producción: ${appServerIP}"
+                        scp -r . ubuntu@${appServerIP}:/tmp/flask-app/
+                        ssh ubuntu@${appServerIP} 'sudo /tmp/flask-app/scripts/deploy.sh production'
+                    """
+                }
+            }
+        }
+        
+        stage('Health Check') {
+            steps {
+                script {
+                    def appServerIP = sh(
+                        script: "cd ../terraform && terraform output -raw app_server_ip",
+                        returnStdout: true
+                    ).trim()
+                    
+                    sh """
+                        echo "Verificando salud de la aplicación..."
+                        for i in {1..5}; do
+                            if curl -f http://${appServerIP}/health; then
+                                echo "Aplicación funcionando correctamente"
+                                break
+                            fi
+                            echo "Intento $i fallido, reintentando..."
+                            sleep 10
+                        done
+                    """
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo 'Pipeline completado'
+            cleanWs()
+        }
+        success {
+            echo 'Deploy exitoso!'
+            // Aquí puedes agregar notificaciones
+        }
+        failure {
+            echo 'Pipeline falló'
+            // Notificaciones de error
+        }
+    }
+}

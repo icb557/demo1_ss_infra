@@ -427,4 +427,61 @@ resource "aws_db_instance" "demo1_primary_db" {
 #   }
 # }
 
+resource "aws_instance" "jenkins" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t3.medium"
+  key_name              = aws_key_pair.main.key_name
+  vpc_security_group_ids = [aws_security_group.jenkins.id]
+  subnet_id             = aws_subnet.public[0].id
+  
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
+  }
+  
+  tags = {
+    Name = "${var.project_name}-jenkins"
+    Role = "CI-CD"
+  }
+  
+  user_data = base64encode(templatefile("${path.module}/userdata/jenkins.sh", {}))
+}
 
+resource "aws_security_group" "jenkins" {
+  name_prefix = "${var.project_name}-jenkins-"
+  vpc_id      = aws_vpc.main.id
+  
+  # SSH desde tu IP específica
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["TU_IP_PUBLICA/32"]  # NUNCA 0.0.0.0/0
+  }
+  
+  # Jenkins Web UI
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["TU_IP_PUBLICA/32"]
+  }
+  
+  # Todo el tráfico saliente
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  tags = {
+    Name = "${var.project_name}-jenkins-sg"
+  }
+}
+
+# Output para obtener la IP
+output "jenkins_server_ip" {
+  description = "IP pública del servidor Jenkins"
+  value       = aws_instance.jenkins.public_ip
+}
