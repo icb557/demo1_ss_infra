@@ -122,28 +122,28 @@ resource "aws_network_acl_rule" "allow_in_https_acl" {
 }
 
 resource "aws_network_acl_rule" "allow_in_ssh_acl" {
-  for_each       = toset(local.admins_ips)
+  count          = length(local.admins_ips)
   network_acl_id = aws_network_acl.demo1_public_sub_acl.id
-  rule_number    = 120
+  rule_number    = 120 + count.index
   egress         = false
   protocol       = "tcp"
   rule_action    = "allow"
-  cidr_block     = each.value
+  cidr_block     = local.admins_ips[count.index]
   from_port      = 22
   to_port        = 22
 }
 
-resource "aws_network_acl_rule" "allow_in_jenkins_acl" {
-  for_each       = toset(local.admins_ips)
-  network_acl_id = aws_network_acl.demo1_public_sub_acl.id
-  rule_number    = 130
-  egress         = false
-  protocol       = "tcp"
-  rule_action    = "allow"
-  cidr_block     = each.value
-  from_port      = 8080
-  to_port        = 8080
-}
+# resource "aws_network_acl_rule" "allow_in_jenkins_acl" {
+#   for_each       = toset(local.admins_ips)
+#   network_acl_id = aws_network_acl.demo1_public_sub_acl.id
+#   rule_number    = 130
+#   egress         = false
+#   protocol       = "tcp"
+#   rule_action    = "allow"
+#   cidr_block     = each.value
+#   from_port      = 8080
+#   to_port        = 8080
+# }
 
 resource "aws_network_acl_rule" "allow_in_ephemeral_ports_acl" {
   network_acl_id = aws_network_acl.demo1_public_sub_acl.id
@@ -222,15 +222,15 @@ resource "aws_security_group" "demo1_app_server_sg" {
   }
 }
 
-resource "aws_security_group" "demo1_cicd_server_sg" {
-  name        = "demo1_cicd_server_sg"
-  description = "Manage inbound and outbound traffic for the ci/cd servers"
-  vpc_id      = aws_vpc.demo1.id
+# resource "aws_security_group" "demo1_cicd_server_sg" {
+#   name        = "demo1_cicd_server_sg"
+#   description = "Manage inbound and outbound traffic for the ci/cd servers"
+#   vpc_id      = aws_vpc.demo1.id
 
-  tags = {
-    Env = "${var.env}"
-  }
-}
+#   tags = {
+#     Env = "${var.env}"
+#   }
+# }
 
 resource "aws_security_group" "demo1_db_server_sg" {
   name        = "demo1_db_server_sg"
@@ -252,9 +252,8 @@ resource "aws_vpc_security_group_ingress_rule" "allow_in_http_traffic" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "allow_in_https_traffic" {
-  for_each          = local.sg_ip_pairs
-  security_group_id = local.my_sgs[each.value.sg_key]
-  cidr_ipv4         = each.value.ip
+  security_group_id = aws_security_group.demo1_app_server_sg.id
+  cidr_ipv4         = "0.0.0.0/0"
   from_port         = 443
   ip_protocol       = "tcp"
   to_port           = 443
@@ -271,15 +270,15 @@ resource "aws_vpc_security_group_ingress_rule" "allow_in_ssh_traffic" {
   description       = "Allow inbound SSH from admins IPs"
 }
 
-resource "aws_vpc_security_group_ingress_rule" "allow_in_http_jenkins_traffic" {
-  for_each          = toset(local.admins_ips)
-  security_group_id = aws_security_group.demo1_cicd_server_sg.id
-  cidr_ipv4         = each.value
-  from_port         = 8080
-  ip_protocol       = "tcp"
-  to_port           = 8080
-  description       = "Allow inbound HTTP from admins to access the jenkins dashboard"
-}
+# resource "aws_vpc_security_group_ingress_rule" "allow_in_http_jenkins_traffic" {
+#   for_each          = toset(local.admins_ips)
+#   security_group_id = aws_security_group.demo1_cicd_server_sg.id
+#   cidr_ipv4         = each.value
+#   from_port         = 8080
+#   ip_protocol       = "tcp"
+#   to_port           = 8080
+#   description       = "Allow inbound HTTP from admins to access the jenkins dashboard"
+# }
 
 resource "aws_vpc_security_group_ingress_rule" "allow_in_db_traffic" {
   security_group_id            = aws_security_group.demo1_db_server_sg.id
@@ -299,14 +298,14 @@ resource "aws_vpc_security_group_egress_rule" "allow_out_app_server_traffic" {
   description       = "Allow outbound traffic to anywhere"
 }
 
-resource "aws_vpc_security_group_egress_rule" "allow_out_cicd_server_traffic" {
-  security_group_id = aws_security_group.demo1_cicd_server_sg.id
-  cidr_ipv4         = "0.0.0.0/0"
-  from_port         = -1
-  ip_protocol       = "-1"
-  to_port           = -1
-  description       = "Allow outbound traffic to anywhere"
-}
+# resource "aws_vpc_security_group_egress_rule" "allow_out_cicd_server_traffic" {
+#   security_group_id = aws_security_group.demo1_cicd_server_sg.id
+#   cidr_ipv4         = "0.0.0.0/0"
+#   from_port         = -1
+#   ip_protocol       = "-1"
+#   to_port           = -1
+#   description       = "Allow outbound traffic to anywhere"
+# }
 
 resource "aws_vpc_security_group_egress_rule" "allow_out_db_traffic" {
   security_group_id            = aws_security_group.demo1_db_server_sg.id
