@@ -11,3 +11,9 @@ RUN wget --quiet https://releases.hashicorp.com/terraform/1.12.0/terraform_1.12.
   && unzip terraform_1.12.0_linux_amd64.zip \
   && mv terraform /usr/bin \
   && rm terraform_1.12.0_linux_amd64.zip
+
+RUN apt-get update && \
+    apt-get install -y curl python3 && \
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install
