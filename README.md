@@ -1,4 +1,4 @@
-# Terraform Pipeline with PR Approval 12234
+# Terraform Pipeline with PR Approval
 
 This repository implements a CI/CD pipeline for Terraform that requires plan approval before applying changes, following Infrastructure as Code (IaC) best practices.
 
