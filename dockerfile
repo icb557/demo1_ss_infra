@@ -1,5 +1,7 @@
 FROM jenkins/jenkins:2.479.3-lts
 
+ARG USERHOMEPATH
+
 USER root
 
 RUN apt-get update && apt-get install -y \
@@ -17,3 +19,8 @@ RUN apt-get update && \
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     ./aws/install
+
+RUN mkdir -p ~/.ssh && \
+    chmod 700 ~/.ssh
+
+RUN ssh-keygen -t ed25519 -f ~/.ssh/demo1Ec2Key -N ''

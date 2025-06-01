@@ -50,7 +50,7 @@ pipeline {
                     dir('terraform') {
                         sh """
                             echo "🔧 Initializing Terraform..."
-                            terraform init -backend-config="key=${params.ENVIRONMENT}/terraform.tfstate"
+                            terraform init -backend-config="key=terraform.tfstate"
                         """
                     }
                 }
@@ -82,7 +82,7 @@ pipeline {
                 dir('terraform') {
                     sh """
                         echo "📋 Generating plan for ${params.ENVIRONMENT}..."
-                        terraform plan -var-file="environments/${params.ENVIRONMENT}.tfvars" -out=tfplan
+                        terraform plan -out=tfplan
                         terraform show -no-color tfplan > plan.txt
                     """
                     
