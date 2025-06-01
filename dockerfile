@@ -2,6 +2,9 @@ FROM jenkins/jenkins:2.479.3-lts
 
 USER root
 
+ARG AWS_ACCESS_KEY_ID
+ARG AWS_SECRET_ACCESS_KEY
+
 RUN apt-get update && apt-get install -y \
     wget \
     unzip \
@@ -24,5 +27,7 @@ RUN mkdir -p ~/.ssh && \
     chmod 600 ~/.ssh/demo1Ec2Key && \
     chmod 644 ~/.ssh/demo1Ec2Key.pub
 
+RUN mkdir -p ~/.aws && \
+    echo "[cursor]\naws_access_key_id = ${AWS_ACCESS_KEY_ID}\naws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" > ~/.aws/credentials
 
 
