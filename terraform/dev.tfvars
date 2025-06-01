@@ -1,6 +1,6 @@
-host_os  = "windows"
-env      = "dev"
-vpc_cidr = "10.0.0.0/16"
+host_os     = "windows"
+env         = "dev"
+vpc_cidr    = "10.0.0.0/16"
 allowed_ips = ["181.51.33.104/32", "122.51.33.105/32"]
 
 public_subnets = {

@@ -1,7 +1,7 @@
 locals {
   my_sg_keys = ["app_server"]
   my_sgs = {
-    app_server  = aws_security_group.demo1_app_server_sg.id
+    app_server = aws_security_group.demo1_app_server_sg.id
   }
   admins_ips = ["181.51.33.104/32", "122.51.33.105/32"]
   sg_ip_pairs = {

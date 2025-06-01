@@ -147,7 +147,7 @@ resource "aws_network_acl_rule" "allow_in_ssh_acl" {
 
 resource "aws_network_acl_rule" "allow_in_ephemeral_ports_acl" {
   network_acl_id = aws_network_acl.demo1_public_sub_acl.id
-  rule_number    = 140              
+  rule_number    = 140
   egress         = false
   protocol       = "tcp"
   rule_action    = "allow"
@@ -396,7 +396,7 @@ resource "aws_db_instance" "demo1_primary_db" {
   db_subnet_group_name    = aws_db_subnet_group.demo1_db_subnet_group.name
   backup_retention_period = 1
   allocated_storage       = 15
-  storage_type           = "gp2"
+  storage_type            = "gp2"
   multi_az                = false
 
   vpc_security_group_ids = [aws_security_group.demo1_db_server_sg.id]
