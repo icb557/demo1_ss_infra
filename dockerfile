@@ -1,7 +1,5 @@
 FROM jenkins/jenkins:2.479.3-lts
 
-ARG USERHOMEPATH
-
 USER root
 
 RUN apt-get update && apt-get install -y \
@@ -21,6 +19,10 @@ RUN apt-get update && \
     ./aws/install
 
 RUN mkdir -p ~/.ssh && \
-    chmod 700 ~/.ssh
+    chmod 700 ~/.ssh && \
+    ssh-keygen -t ed25519 -f ~/.ssh/demo1Ec2Key -N '' && \
+    chmod 600 ~/.ssh/demo1Ec2Key && \
+    chmod 644 ~/.ssh/demo1Ec2Key.pub
 
-RUN ssh-keygen -t ed25519 -f ~/.ssh/demo1Ec2Key -N ''
+
+
