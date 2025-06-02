@@ -106,18 +106,18 @@ pipeline {
                                 }
                             }
                             """
-                            
-                            def gistResponse = sh(
-                                script: """
-                                    curl -X POST \
-                                    -H "Authorization: token ${GITHUB_TOKEN}" \
-                                    -H "Accept: application/vnd.github.v3+json" \
-                                    -d '${gistContent}' \
-                                    https://api.github.com/gists
-                                """,
-                                returnStdout: true
-                            ).trim()
-                            
+                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                                def gistResponse = sh(
+                                    script: """
+                                        curl -X POST \
+                                        -H "Authorization: token ${TOKEN}" \
+                                        -H "Accept: application/vnd.github.v3+json" \
+                                        -d '${gistContent}' \
+                                        https://api.github.com/gists
+                                    """,
+                                    returnStdout: true
+                                ).trim()
+                            }
                             def gistData = readJSON text: gistResponse
                             def gistUrl = gistData.html_url
                             
@@ -136,15 +136,16 @@ pipeline {
                             To approve this plan and allow its application, a reviewer must comment with: 
                             ✅ **Approve plan**
                             """
-                            
-                            sh """
-                                curl -X POST \
-                                -H "Authorization: token ${GITHUB_TOKEN}" \
-                                -H "Accept: application/vnd.github.v3+json" \
-                                -d '{"body": "${prComment.replaceAll("'", "\\'")}"}' \
-                                https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
-                            """
-                            
+
+                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                                sh """
+                                    curl -X POST \
+                                    -H "Authorization: token ${TOKEN}" \
+                                    -H "Accept: application/vnd.github.v3+json" \
+                                    -d '{"body": "${prComment.replaceAll("'", "\\'")}"}' \
+                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+                                """
+                            }
                             // Store Gist URL as environment variable for later stages
                             env.PLAN_GIST_URL = gistUrl
                         }
@@ -168,15 +169,16 @@ pipeline {
                     
                     while (!approved && retryCount < maxRetries) {
                         // Get PR comments to check for approval
-                        def commentsResponse = sh(
-                            script: """
-                                curl -s -H "Authorization: token ${GITHUB_TOKEN}" \
+                        withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                            def commentsResponse = sh(
+                                script: """
+                                    curl -s -H "Authorization: token ${TOKEN}" \
                                 -H "Accept: application/vnd.github.v3+json" \
                                 https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
-                            """,
-                            returnStdout: true
-                        ).trim()
-                        
+                                """,
+                                returnStdout: true
+                            ).trim()
+                        }
                         def comments = readJSON text: commentsResponse
                         
                         // Check if any comment contains the approval message
@@ -242,22 +244,25 @@ pipeline {
                             [Original plan](${env.PLAN_GIST_URL})
                             """
                             
-                            sh """
-                                curl -X POST \
-                                -H "Authorization: token ${GITHUB_TOKEN}" \
-                                -H "Accept: application/vnd.github.v3+json" \
-                                -d '{"body": "${applyComment.replaceAll("'", "\\'")}"}' \
-                                https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
-                            """
-                            
+                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                                sh """
+                                    curl -X POST \
+                                    -H "Authorization: token ${TOKEN}" \
+                                    -H "Accept: application/vnd.github.v3+json" \
+                                    -d '{"body": "${applyComment.replaceAll("'", "\\'")}"}' \
+                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+                                """
+                            }
                             // Set PR status to success
-                            sh """
-                                curl -X POST \
-                                -H "Authorization: token ${GITHUB_TOKEN}" \
-                                -H "Accept: application/vnd.github.v3+json" \
-                                -d '{"state": "success", "context": "terraform-apply", "description": "Terraform changes applied successfully", "target_url": "${env.BUILD_URL}"}' \
-                                https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${env.GIT_COMMIT}
-                            """
+                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                                sh """
+                                    curl -X POST \
+                                    -H "Authorization: token ${TOKEN}" \
+                                    -H "Accept: application/vnd.github.v3+json" \
+                                    -d '{"state": "success", "context": "terraform-apply", "description": "Terraform changes applied successfully", "target_url": "${env.BUILD_URL}"}' \
+                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${env.GIT_COMMIT}
+                                """
+                            }
                         }
                     }
                 }   
@@ -285,23 +290,33 @@ pipeline {
                     
                     The Terraform pipeline has failed. Please check the [Jenkins logs](${env.BUILD_URL}) for more details.
                     """
-                    
-                    sh """
-                        curl -X POST \
-                        -H "Authorization: token ${GITHUB_TOKEN}" \
-                        -H "Accept: application/vnd.github.v3+json" \
-                        -d '{"body": "${failureComment.replaceAll("'", "\\'")}"}' \
-                        https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
-                    """
-                    
-                    // Set PR status to failure
-                    sh """
-                        curl -X POST \
-                        -H "Authorization: token ${GITHUB_TOKEN}" \
-                        -H "Accept: application/vnd.github.v3+json" \
-                        -d '{"state": "failure", "context": "terraform-pipeline", "description": "Terraform pipeline failed", "target_url": "${env.BUILD_URL}"}' \
-                        https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${env.GIT_COMMIT}
-                    """
+
+                    withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                        sh """
+                            curl -X POST \
+                            -H "Authorization: token ${TOKEN}" \
+                            -H "Accept: application/vnd.github.v3+json" \
+                            -d '{"body": "${failureComment.replaceAll("'", "\\'")}"}' \
+                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+                        """
+                        
+                        echo "Debug: Attempting to fetch PR head commit SHA..."
+                        def prHeadSha = sh(script: 'git rev-parse refs/pull/${env.CHANGE_ID}/head', returnStdout: true).trim()
+                        echo "Debug: Using PR head SHA: ${prHeadSha}"
+                        try {
+                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                                sh '''
+                                    curl -X POST \
+                                    -H "Authorization: token $TOKEN" \
+                                    -H "Accept: application/vnd.github.v3+json" \
+                                    -d '{"state": "failure", "context": "terraform-pipeline", "description": "Terraform pipeline failed", "target_url": "' + "${env.BUILD_URL}" + '"}' \
+                                    https://api.github.com/repos/' + "${REPO_OWNER}/${REPO_NAME}/statuses/" + "${prHeadSha}"
+                                '''
+                            }
+                        } catch (error) {
+                            echo "Error setting commit status: " + error.getMessage()
+                        }
+                    }
                 }
             }
         }
