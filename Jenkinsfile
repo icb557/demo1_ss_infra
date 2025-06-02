@@ -110,7 +110,7 @@ pipeline {
                                 def gistResponse = sh(
                                     script: """
                                         curl -X POST \
-                                        -H "Authorization: token ${TOKEN}" \
+                                        -H "Authorization: token $TOKEN" \
                                         -H "Accept: application/vnd.github.v3+json" \
                                         -d '${gistContent}' \
                                         https://api.github.com/gists
@@ -140,10 +140,10 @@ pipeline {
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                                 sh """
                                     curl -X POST \
-                                    -H "Authorization: token ${TOKEN}" \
+                                    -H "Authorization: token $TOKEN" \
                                     -H "Accept: application/vnd.github.v3+json" \
                                     -d '{"body": "${prComment.replaceAll("'", "\\'")}"}' \
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/comments
                                 """
                             }
                             // Store Gist URL as environment variable for later stages
@@ -172,9 +172,9 @@ pipeline {
                         withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                             def commentsResponse = sh(
                                 script: """
-                                    curl -s -H "Authorization: token ${TOKEN}" \
+                                    curl -s -H "Authorization: token $TOKEN" \
                                 -H "Accept: application/vnd.github.v3+json" \
-                                https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+                                https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/comments
                                 """,
                                 returnStdout: true
                             ).trim()
@@ -247,17 +247,17 @@ pipeline {
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                                 sh """
                                     curl -X POST \
-                                    -H "Authorization: token ${TOKEN}" \
+                                    -H "Authorization: token $TOKEN" \
                                     -H "Accept: application/vnd.github.v3+json" \
                                     -d '{"body": "${applyComment.replaceAll("'", "\\'")}"}' \
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/comments
                                 """
                             }
                             // Set PR status to success
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                                 sh """
                                     curl -X POST \
-                                    -H "Authorization: token ${TOKEN}" \
+                                    -H "Authorization: token $TOKEN" \
                                     -H "Accept: application/vnd.github.v3+json" \
                                     -d '{"state": "success", "context": "terraform-apply", "description": "Terraform changes applied successfully", "target_url": "${env.BUILD_URL}"}' \
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${env.GIT_COMMIT}
@@ -294,10 +294,10 @@ pipeline {
                     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                         sh """
                             curl -X POST \
-                            -H "Authorization: token ${TOKEN}" \
+                            -H "Authorization: token $TOKEN" \
                             -H "Accept: application/vnd.github.v3+json" \
                             -d '{"body": "${failureComment.replaceAll("'", "\\'")}"}' \
-                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/comments
                         """
                         
                         echo "Debug: Attempting to fetch PR head commit SHA..."
