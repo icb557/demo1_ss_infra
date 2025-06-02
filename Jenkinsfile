@@ -32,8 +32,9 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                sh """git clone -b FAD-15-task https://github.com/${REPO_OWNER}/${REPO_NAME}"""
                 echo "✅ Code downloaded"
+                sh """ls -al"""
             }
         }
         
@@ -45,21 +46,19 @@ pipeline {
         }
         
         stage('Terraform Init') {
-            steps {
-                withAWS(credentials: 'aws-credentials', region: env.AWS_DEFAULT_REGION) {
-                    dir('terraform') {
-                        sh """
-                            echo "🔧 Initializing Terraform..."
-                            terraform init -backend-config="key=terraform.tfstate"
-                        """
-                    }
+            steps {                
+                dir('demo1_ss_infra/terraform') {
+                    sh """
+                        echo "🔧 Initializing Terraform..."
+                        terraform init -backend-config="key=terraform.tfstate"
+                    """
                 }
             }
         }
         
         stage('Terraform Validate') {
             steps {
-                dir('terraform') {
+                dir('demo1_ss_infra/terraform') {
                     sh '''
                         echo "✅ Validating configuration..."
                         terraform validate
@@ -79,7 +78,7 @@ pipeline {
             }
             steps {
                 
-                dir('terraform') {
+                dir('demo1_ss_infra/terraform') {
                     sh """
                         echo "📋 Generating plan for ${params.ENVIRONMENT}..."
                         terraform plan -out=tfplan
@@ -225,7 +224,7 @@ pipeline {
             }
             steps {
                 
-                dir('terraform') {
+                dir('demo1_ss_infra/terraform') {
                     sh '''
                         echo "🚀 Applying changes..."
                         terraform apply tfplan
@@ -268,7 +267,7 @@ pipeline {
     
     post {
         always {
-            dir('terraform') {
+            dir('demo1_ss_infra/terraform') {
                 sh 'rm -f tfplan plan.txt || true'
             }
         }
