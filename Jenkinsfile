@@ -146,7 +146,7 @@ pipeline {
                                     -H "Accept: application/vnd.github.v3+json" \
                                     -H "Content-Type: application/json" \
                                     -d '${jsonPayload}' \
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/comments
+                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                                 """
                             }
                             // Store Gist URL as environment variable for later stages
@@ -177,7 +177,7 @@ pipeline {
                                 script: """
                                     curl -s -H "Authorization: token $TOKEN" \
                                 -H "Accept: application/vnd.github.v3+json" \
-                                https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/comments
+                                https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                                 """,
                                 returnStdout: true
                             ).trim()
@@ -256,7 +256,7 @@ pipeline {
                                     -H "Accept: application/vnd.github.v3+json" \
                                     -H "Content-Type: application/json" \
                                     -d '${jsonPayload}' \
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/comments
+                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                                 """
                             }
                             // Set PR status to success
@@ -314,7 +314,7 @@ pipeline {
                             -H "Accept: application/vnd.github.v3+json" \
                             -H "Content-Type: application/json" \
                             -d '${jsonPayload}' \
-                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/comments
+                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                         """
                         
                         echo "Debug: Attempting to fetch PR head commit SHA..."
