@@ -136,13 +136,16 @@ pipeline {
                             To approve this plan and allow its application, a reviewer must comment with: 
                             ✅ **Approve plan**
                             """
+                            
+                            def jsonPayload = groovy.json.JsonOutput.toJson([body: prComment])
 
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                                 sh """
                                     curl -X POST \
                                     -H "Authorization: token $TOKEN" \
                                     -H "Accept: application/vnd.github.v3+json" \
-                                    -d '{"body": "${prComment.replaceAll("'", "\\'")}"}' \
+                                    -H "Content-Type: application/json" \
+                                    -d '${jsonPayload}' \
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/comments
                                 """
                             }
@@ -244,22 +247,33 @@ pipeline {
                             [Original plan](${env.PLAN_GIST_URL})
                             """
                             
+                            def jsonPayload = groovy.json.JsonOutput.toJson([body: applyComment])
+                            
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                                 sh """
                                     curl -X POST \
                                     -H "Authorization: token $TOKEN" \
                                     -H "Accept: application/vnd.github.v3+json" \
-                                    -d '{"body": "${applyComment.replaceAll("'", "\\'")}"}' \
+                                    -H "Content-Type: application/json" \
+                                    -d '${jsonPayload}' \
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/comments
                                 """
                             }
                             // Set PR status to success
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                                def statusPayload = groovy.json.JsonOutput.toJson([
+                                    state: "success",
+                                    context: "terraform-apply",
+                                    description: "Terraform changes applied successfully",
+                                    target_url: "${env.BUILD_URL}"
+                                ])
+                                
                                 sh """
                                     curl -X POST \
                                     -H "Authorization: token $TOKEN" \
                                     -H "Accept: application/vnd.github.v3+json" \
-                                    -d '{"state": "success", "context": "terraform-apply", "description": "Terraform changes applied successfully", "target_url": "${env.BUILD_URL}"}' \
+                                    -H "Content-Type: application/json" \
+                                    -d '${statusPayload}' \
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${env.GIT_COMMIT}
                                 """
                             }
@@ -290,13 +304,16 @@ pipeline {
                     
                     The Terraform pipeline has failed. Please check the [Jenkins logs](${env.BUILD_URL}) for more details.
                     """
+                    
+                    def jsonPayload = groovy.json.JsonOutput.toJson([body: failureComment])
 
                     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                         sh """
                             curl -X POST \
                             -H "Authorization: token $TOKEN" \
                             -H "Accept: application/vnd.github.v3+json" \
-                            -d '{"body": "${failureComment.replaceAll("'", "\\'")}"}' \
+                            -H "Content-Type: application/json" \
+                            -d '${jsonPayload}' \
                             https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/comments
                         """
                         
@@ -304,14 +321,22 @@ pipeline {
                         def prHeadSha = sh(script: 'git rev-parse refs/pull/${env.CHANGE_ID}/head', returnStdout: true).trim()
                         echo "Debug: Using PR head SHA: ${prHeadSha}"
                         try {
+                            def statusPayload = groovy.json.JsonOutput.toJson([
+                                state: "failure",
+                                context: "terraform-pipeline",
+                                description: "Terraform pipeline failed",
+                                target_url: "${env.BUILD_URL}"
+                            ])
+                            
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                                sh '''
+                                sh """
                                     curl -X POST \
                                     -H "Authorization: token $TOKEN" \
                                     -H "Accept: application/vnd.github.v3+json" \
-                                    -d '{"state": "failure", "context": "terraform-pipeline", "description": "Terraform pipeline failed", "target_url": "' + "${env.BUILD_URL}" + '"}' \
-                                    https://api.github.com/repos/' + "${REPO_OWNER}/${REPO_NAME}/statuses/" + "${prHeadSha}"
-                                '''
+                                    -H "Content-Type: application/json" \
+                                    -d '${statusPayload}' \
+                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${prHeadSha}
+                                """
                             }
                         } catch (error) {
                             echo "Error setting commit status: " + error.getMessage()
