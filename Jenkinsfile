@@ -106,13 +106,14 @@ pipeline {
                                 }
                             }
                             """
+                            def gistResponse = ""
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                                def gistResponse = sh(
+                                gistResponse = sh(
                                     script: """
-                                        curl -X POST \
-                                        -H "Authorization: token $TOKEN" \
-                                        -H "Accept: application/vnd.github.v3+json" \
-                                        -d '${gistContent}' \
+                                        curl -X POST \\
+                                        -H "Authorization: token $TOKEN" \\
+                                        -H "Accept: application/vnd.github.v3+json" \\
+                                        -d '${gistContent}' \\
                                         https://api.github.com/gists
                                     """,
                                     returnStdout: true
@@ -141,11 +142,11 @@ pipeline {
 
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                                 sh """
-                                    curl -X POST \
-                                    -H "Authorization: token $TOKEN" \
-                                    -H "Accept: application/vnd.github.v3+json" \
-                                    -H "Content-Type: application/json" \
-                                    -d '${jsonPayload}' \
+                                    curl -X POST \\
+                                    -H "Authorization: token $TOKEN" \\
+                                    -H "Accept: application/vnd.github.v3+json" \\
+                                    -H "Content-Type: application/json" \\
+                                    -d '${jsonPayload}' \\
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                                 """
                             }
@@ -175,8 +176,8 @@ pipeline {
                         withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                             def commentsResponse = sh(
                                 script: """
-                                    curl -s -H "Authorization: token $TOKEN" \
-                                -H "Accept: application/vnd.github.v3+json" \
+                                    curl -s -H "Authorization: token $TOKEN" \\
+                                -H "Accept: application/vnd.github.v3+json" \\
                                 https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                                 """,
                                 returnStdout: true
@@ -251,11 +252,11 @@ pipeline {
                             
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                                 sh """
-                                    curl -X POST \
-                                    -H "Authorization: token $TOKEN" \
-                                    -H "Accept: application/vnd.github.v3+json" \
-                                    -H "Content-Type: application/json" \
-                                    -d '${jsonPayload}' \
+                                    curl -X POST \\
+                                    -H "Authorization: token $TOKEN" \\
+                                    -H "Accept: application/vnd.github.v3+json" \\
+                                    -H "Content-Type: application/json" \\
+                                    -d '${jsonPayload}' \\
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                                 """
                             }
@@ -269,11 +270,11 @@ pipeline {
                                 ])
                                 
                                 sh """
-                                    curl -X POST \
-                                    -H "Authorization: token $TOKEN" \
-                                    -H "Accept: application/vnd.github.v3+json" \
-                                    -H "Content-Type: application/json" \
-                                    -d '${statusPayload}' \
+                                    curl -X POST \\
+                                    -H "Authorization: token $TOKEN" \\
+                                    -H "Accept: application/vnd.github.v3+json" \\
+                                    -H "Content-Type: application/json" \\
+                                    -d '${statusPayload}' \\
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${env.GIT_COMMIT}
                                 """
                             }
@@ -309,17 +310,17 @@ pipeline {
 
                     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                         sh """
-                            curl -X POST \
-                            -H "Authorization: token $TOKEN" \
-                            -H "Accept: application/vnd.github.v3+json" \
-                            -H "Content-Type: application/json" \
-                            -d '${jsonPayload}' \
+                            curl -X POST \\
+                            -H "Authorization: token $TOKEN" \\
+                            -H "Accept: application/vnd.github.v3+json" \\
+                            -H "Content-Type: application/json" \\
+                            -d '${jsonPayload}' \\
                             https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                         """
                         
                         echo "Debug: Attempting to fetch PR head commit SHA..."
-                        def prHeadSha = sh(script: 'git rev-parse refs/pull/${env.CHANGE_ID}/head', returnStdout: true).trim()
-                        echo "Debug: Using PR head SHA: ${prHeadSha}"
+                        def prHeadSha = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
+                        echo "Debug: Using commit SHA: ${prHeadSha}"
                         try {
                             def statusPayload = groovy.json.JsonOutput.toJson([
                                 state: "failure",
@@ -330,11 +331,11 @@ pipeline {
                             
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                                 sh """
-                                    curl -X POST \
-                                    -H "Authorization: token $TOKEN" \
-                                    -H "Accept: application/vnd.github.v3+json" \
-                                    -H "Content-Type: application/json" \
-                                    -d '${statusPayload}' \
+                                    curl -X POST \\
+                                    -H "Authorization: token $TOKEN" \\
+                                    -H "Accept: application/vnd.github.v3+json" \\
+                                    -H "Content-Type: application/json" \\
+                                    -d '${statusPayload}' \\
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${prHeadSha}
                                 """
                             }
