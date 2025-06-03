@@ -167,7 +167,7 @@ pipeline {
                     def approved = false
                     def maxRetries = 10
                     def retryCount = 0
-                    def sleepDuration = 300  // 2 minute
+                    def sleepDuration = 60  // 1 minute
                     
                     echo "Waiting for plan approval in the PR..."
                     
@@ -185,7 +185,9 @@ pipeline {
                             
                             // Process the comments inside the withCredentials block to keep variable in scope
                             def comments = readJSON text: commentsResponse
-                            
+
+                            echo "Comments: ${comments}"
+
                             // Check if any comment contains the approval message
                             approved = comments.any { comment -> 
                                 comment.body.contains('✅ Approve plan')
