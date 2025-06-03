@@ -177,17 +177,19 @@ pipeline {
                             def commentsResponse = sh(
                                 script: """
                                     curl -s -H "Authorization: token $TOKEN" \\
-                                -H "Accept: application/vnd.github.v3+json" \\
-                                https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+                                    -H "Accept: application/vnd.github.v3+json" \\
+                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                                 """,
                                 returnStdout: true
                             ).trim()
-                        }
-                        def comments = readJSON text: commentsResponse
-                        
-                        // Check if any comment contains the approval message
-                        approved = comments.any { comment -> 
-                            comment.body.contains('✅ Approve plan')
+                            
+                            // Process the comments inside the withCredentials block to keep variable in scope
+                            def comments = readJSON text: commentsResponse
+                            
+                            // Check if any comment contains the approval message
+                            approved = comments.any { comment -> 
+                                comment.body.contains('✅ Approve plan')
+                            }
                         }
                         
                         if (approved) {
