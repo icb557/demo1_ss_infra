@@ -167,7 +167,7 @@ pipeline {
                     def approved = false
                     def maxRetries = 10
                     def retryCount = 0
-                    def sleepDuration = 60  // 1 minute
+                    def sleepDuration = 300  // 2 minute
                     
                     echo "Waiting for plan approval in the PR..."
                     
