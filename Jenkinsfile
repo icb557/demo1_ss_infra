@@ -14,15 +14,13 @@ pipeline {
     parameters {
         choice(
             name: 'ACTION',
-            choices: ['validate', 'plan', 'apply'],
+            choices: ['apply', 'validate', 'plan'],
             description: 'Terraform action',
-            defaultValue: 'apply'
         )
         choice(
             name: 'ENVIRONMENT', 
             choices: ['dev', 'staging', 'prod'],
             description: 'Environment',
-            defaultValue: 'dev'
         )
         booleanParam(
             name: 'SKIP_APPROVAL',
