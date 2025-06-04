@@ -264,22 +264,16 @@ pipeline {
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                                 """
                             }
-                            // Set PR status to success
-                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                                def statusPayload = groovy.json.JsonOutput.toJson([
-                                    state: "success",
-                                    context: "terraform-apply",
-                                    description: "Terraform changes applied successfully",
-                                    target_url: "${env.BUILD_URL}"
-                                ])
-                                
-                                sh """
-                                    curl -X POST \\
-                                    -H "Authorization: token $TOKEN" \\
-                                    -H "Accept: application/vnd.github.v3+json" \\
-                                    -H "Content-Type: application/json" \\
-                                    -d '${statusPayload}' \\
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${env.GIT_COMMIT}
+                            Set PR status to success
+                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {                                
+                                sh """                                    
+                                    curl -L \\
+                                    -X PUT \\
+                                    -H "Accept: application/vnd.github+json" \\
+                                    -H "Authorization: Bearer $TOKEN" \\
+                                    -H "X-GitHub-Api-Version: 2022-11-28" \\
+                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/merge \\
+                                    -d '{"commit_title":"merge PR: ${env.PR_NUMBER}"}'
                                 """
                             }
                         }
