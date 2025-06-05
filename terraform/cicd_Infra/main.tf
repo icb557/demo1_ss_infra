@@ -94,13 +94,12 @@ resource "aws_network_acl_rule" "allow_in_ssh_acl" {
 }
 
 resource "aws_network_acl_rule" "allow_in_jenkins_acl" {
-  for_each       = toset(var.allowed_ips)
   network_acl_id = aws_network_acl.cicd_public_sub_acl.id
   rule_number    = 130
   egress         = false
   protocol       = "tcp"
   rule_action    = "allow"
-  cidr_block     = each.value
+  cidr_block     = "0.0.0.0/0"
   from_port      = 8080
   to_port        = 8080
 }
@@ -182,13 +181,12 @@ resource "aws_vpc_security_group_ingress_rule" "allow_in_ssh_traffic" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "allow_in_http_jenkins_traffic" {
-  for_each          = toset(var.allowed_ips)
   security_group_id = aws_security_group.cicd_server_sg.id
-  cidr_ipv4         = each.value
+  cidr_ipv4         = "0.0.0.0/0"
   from_port         = 8080
   ip_protocol       = "tcp"
   to_port           = 8080
-  description       = "Allow inbound HTTP from admins to access the jenkins dashboard"
+  description       = "Allow inbound HTTP to access jenkins"
 }
 
 resource "aws_vpc_security_group_egress_rule" "allow_out_cicd_server_traffic" {
@@ -219,7 +217,7 @@ resource "aws_instance" "cicd_server1" {
   ami           = data.aws_ami.server_ami.id
   instance_type = "t2.micro"
   key_name      = aws_key_pair.cicd_ec2_key.id
-  #user_data     = file("userdata.tpl")
+  user_data     = file("userdata.tpl")
 
   network_interface {
     network_interface_id = aws_network_interface.ec2_nic1_as1.id
@@ -239,4 +237,20 @@ resource "aws_instance" "cicd_server1" {
     })
     interpreter = var.host_os == "windows" ? ["PowerShell", "-Command"] : ["bash", "-c"]
   }
+}
+
+resource "aws_ebs_volume" "jenkins_volume" {
+  availability_zone = aws_subnet.cicd_public_subnet1.availability_zone
+  size              = 8
+  type              = "gp2"
+  tags = {
+    Name = "jenkins-ebs-volume"
+    Env  = var.env
+  }
+}
+
+resource "aws_volume_attachment" "ebs_att" {
+  device_name = "/dev/sdh"
+  volume_id   = aws_ebs_volume.jenkins_volume.id
+  instance_id = aws_instance.cicd_server1.id
 }

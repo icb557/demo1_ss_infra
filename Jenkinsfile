@@ -165,7 +165,7 @@ pipeline {
             steps {
                 script {
                     def approved = false
-                    def maxRetries = 10
+                    def maxRetries = 5
                     def retryCount = 0
                     def sleepDuration = 60  // 1 minute
                     
