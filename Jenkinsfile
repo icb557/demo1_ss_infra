@@ -14,7 +14,7 @@ pipeline {
     parameters {
         choice(
             name: 'ACTION',
-            choices: ['apply', 'validate', 'plan'],
+            choices: ['apply', 'validate', 'plan', 'destroy'],
             description: 'Terraform action',
         )
         choice(
@@ -281,6 +281,17 @@ pipeline {
                 }   
             }
         }
+        
+        stage('Terraform Destroy') {
+            when {
+                expression { params.ACTION == 'destroy' && env.IS_PR != 'true' }
+            }
+            steps {
+                dir('demo1_ss_infra/terraform/app_Infra') {
+                    sh 'terraform destroy -auto-approve'
+                }
+            }
+        }
     }
     
     post {
@@ -316,27 +327,27 @@ pipeline {
                             https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                         """
                         
-                        echo "Debug: Attempting to fetch PR head commit SHA..."
-                        def prHeadSha = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
-                        echo "Debug: Using commit SHA: ${prHeadSha}"
-                        try {
-                            def statusPayload = groovy.json.JsonOutput.toJson([
-                                state: "failure",
-                                context: "terraform-pipeline",
-                                description: "Terraform pipeline failed",
-                                target_url: "${env.BUILD_URL}"
-                            ])
+                        // echo "Debug: Attempting to fetch PR head commit SHA..."
+                        // def prHeadSha = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
+                        // echo "Debug: Using commit SHA: ${prHeadSha}"
+                        // try {
+                        //     def statusPayload = groovy.json.JsonOutput.toJson([
+                        //         state: "failure",
+                        //         context: "terraform-pipeline",
+                        //         description: "Terraform pipeline failed",
+                        //         target_url: "${env.BUILD_URL}"
+                        //     ])
                             
-                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                                sh """
-                                    curl -X POST \\
-                                    -H "Authorization: token $TOKEN" \\
-                                    -H "Accept: application/vnd.github.v3+json" \\
-                                    -H "Content-Type: application/json" \\
-                                    -d '${statusPayload}' \\
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${prHeadSha}
-                                """
-                            }
+                        //     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                        //         sh """
+                        //             curl -X POST \\
+                        //             -H "Authorization: token $TOKEN" \\
+                        //             -H "Accept: application/vnd.github.v3+json" \\
+                        //             -H "Content-Type: application/json" \\
+                        //             -d '${statusPayload}' \\
+                        //             https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${prHeadSha}
+                        //         """
+                        //     }
                         } catch (error) {
                             echo "Error setting commit status: " + error.getMessage()
                         }
