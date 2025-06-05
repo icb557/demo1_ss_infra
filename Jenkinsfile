@@ -47,7 +47,7 @@ pipeline {
         
         stage('Terraform Init') {
             steps {                
-                dir('demo1_ss_infra/terraform/app_infra') {
+                dir('demo1_ss_infra/terraform/app_Infra') {
                     sh """
                         echo "🔧 Initializing Terraform..."
                         terraform init -backend-config="key=terraform.tfstate"
@@ -58,7 +58,7 @@ pipeline {
         
         stage('Terraform Validate') {
             steps {
-                dir('demo1_ss_infra/terraform/app_infra') {
+                dir('demo1_ss_infra/terraform/app_Infra') {
                     sh '''
                         echo "✅ Validating configuration..."
                         terraform validate
@@ -78,7 +78,7 @@ pipeline {
             }
             steps {
                 
-                dir('demo1_ss_infra/terraform/app_infra/app_infra') {
+                dir('demo1_ss_infra/terraform/app_Infra') {
                     sh """
                         echo "📋 Generating plan for ${params.ENVIRONMENT}..."
                         terraform plan -out=tfplan
@@ -234,7 +234,7 @@ pipeline {
             }
             steps {
                 
-                dir('demo1_ss_infra/terraform/app_infra') {
+                dir('demo1_ss_infra/terraform/app_Infra') {
                     sh '''
                         echo "🚀 Applying changes..."
                         terraform apply tfplan
@@ -285,7 +285,7 @@ pipeline {
     
     post {
         always {
-            dir('demo1_ss_infra/terraform/app_infra') {
+            dir('demo1_ss_infra/terraform/app_Infra') {
                 sh 'rm -f tfplan plan.txt || true'
             }
         }
