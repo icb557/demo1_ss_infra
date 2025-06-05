@@ -348,9 +348,9 @@ pipeline {
                         //             https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${prHeadSha}
                         //         """
                         //     }
-                        } catch (error) {
-                            echo "Error setting commit status: " + error.getMessage()
-                        }
+                        // } catch (error) {
+                        //     echo "Error setting commit status: " + error.getMessage()
+                        // }
                     }
                 }
             }
