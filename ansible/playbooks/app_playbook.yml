@@ -1,0 +1,87 @@
+- name: Deploy app
+  hosts: webservers
+  become: yes
+  vars:
+    app_dir: /opt/flaskapp
+    gunicorn_workers: 4
+    gunicorn_bind: 0.0.0.0:8000
+    
+  tasks:
+    - name: Verify if repo was cloned
+      stat:
+        path: "{{ app_dir }}/.git"
+      register: repo_git
+  
+    - name: Clone app
+      git:
+        repo: 'https://github.com/icb557/demo1_ss_app_flask.git'
+        dest: "{{ app_dir }}"
+        version: main
+        clone: yes
+        update: yes
+      when: not repo_git.stat.exists
+
+    - name: Pull updates if repo is present
+      git:
+        repo: 'https://github.com/icb557/demo1_ss_app_flask.git'
+        dest: "{{ app_dir }}"
+        version: main
+        update: yes
+      when: repo_git.stat.exists
+
+        
+    - name: Install dependecies from requirements.txt
+      pip:
+        requirements: "{{ app_dir }}/requirements.txt"
+        state: present
+
+    - name: Verify migrations
+      stat:
+        path: "{{ app_dir }}/migrations"
+      register: migrations_dir
+
+    - name: Init migrations if not exist
+      shell: |
+        flask db init
+      args:
+        chdir: "{{ app_dir }}"
+      when: not migrations_dir.stat.exists
+
+    - name: Run flask db migrate
+      shell: |
+        flask db migrate -m "Auto migration"
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Ejecutar flask db upgrade
+      shell: |
+        flask db upgrade
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Create config file to gunicorn
+      copy:
+        dest: "{{ app_dir }}/gunicorn_config.py"
+        content: |
+          workers = {{ gunicorn_workers }}
+          bind = "{{ gunicorn_bind }}"
+          worker_class = 'sync'
+          accesslog = "-"
+          errorlog = "-"
+    - name: Run Gunicorn in background
+      shell: |
+        nohup gunicorn --config {{ app_dir }}/gunicorn_config.py 'app:create_app()' > /dev/null 2>&1 &
+      args:
+        chdir: "{{ app_dir }}"
+      async: 0
+      poll: 0
+
+    - name: Verify status of app
+      uri:
+        url: "http://{{ gunicorn_bind }}"
+        status_code: 200
+      register: result
+        
+    - name: Show result of status
+      debug:
+        var: result
