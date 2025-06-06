@@ -32,7 +32,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                sh """git clone -b FAD-15-task https://github.com/${REPO_OWNER}/${REPO_NAME}"""
+                sh """git clone https://github.com/${REPO_OWNER}/${REPO_NAME}"""
                 echo "✅ Code downloaded"
                 sh """ls -al"""
             }
