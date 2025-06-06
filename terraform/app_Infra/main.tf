@@ -343,9 +343,9 @@ resource "aws_instance" "demo1_app_server1" {
   }
 
   ebs_block_device {
-    device_name = "/dev/sdh"
-    volume_size = 10  # Size in GB, adjust as needed
-    volume_type = "gp2"
+    device_name           = "/dev/sdh"
+    volume_size           = 10 # Size in GB, adjust as needed
+    volume_type           = "gp2"
     delete_on_termination = true
   }
 

@@ -32,7 +32,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                sh """git clone -b FAD-15-task https://github.com/${REPO_OWNER}/${REPO_NAME}"""
+                sh """git clone -b FAD-44-task https://github.com/${REPO_OWNER}/${REPO_NAME}"""
                 echo "✅ Code downloaded"
                 sh """ls -al"""
             }
@@ -282,6 +282,16 @@ pipeline {
             }
         }
         
+        stage('Set Environment Variables') {
+            steps {
+                script {
+                    def appServerIp = sh(script: 'terraform output -raw app_server_public_ip', returnStdout: true).trim()
+                    env.APP_SERVER_IP = appServerIp
+                    echo "Set APP_SERVER_IP to ${env.APP_SERVER_IP}"
+                }
+            }
+        }
+        
         stage('Terraform Destroy') {
             when {
                 expression { params.ACTION == 'destroy' && env.IS_PR != 'true' }
@@ -290,6 +300,22 @@ pipeline {
                 dir('demo1_ss_infra/terraform/app_Infra') {
                     sh 'terraform destroy -auto-approve'
                 }
+            }
+        }
+        
+        stage('Run Ansible Playbook') {
+            steps {
+                ansiblePlaybook(
+                    playbook: 'ansible/playbooks/infra_playbook.yml',
+                    inventory: 'ansible/inventories/hosts',
+                    credentialsId: 'ssh-key-appserver'
+                )
+            }
+        }
+
+        stage('Copy hosts file to shared path'){
+            steps {
+                sh 'cp ansible/inventories/hosts.ini /var/lib/jenkins/shared/hosts.ini'
             }
         }
     }

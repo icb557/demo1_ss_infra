@@ -20,7 +20,7 @@ RUN apt-get update && \
 
 RUN mkdir -p ~/.ssh && \
     chmod 700 ~/.ssh && \
-    ssh-keygen -t ed25519 -f ~/.ssh/demo1Ec2Key -N '' && \
+    ssh-keygen -t ed25519 -f ~/.ssh/demo1Ec2Key -N 'devops' && \
     chmod 600 ~/.ssh/demo1Ec2Key && \
     chmod 644 ~/.ssh/demo1Ec2Key.pub
 
