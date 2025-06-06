@@ -306,6 +306,12 @@ pipeline {
                 script {
                     def appServerIp = readFile('/var/jenkins_home/app_server_ip.txt').trim()
                     env.APP_SERVER_IP = appServerIp
+                    
+                    // Dynamically write the hosts.ini file
+                    sh '''
+                        echo \'[webservers]\' > ansible/inventories/hosts.ini
+                        echo \'webserver ansible_host=$APP_SERVER_IP ansible_user=ubuntu\' >> ansible/inventories/hosts.ini
+                    '''
                 }
                 sh 'echo $APP_SERVER_IP'
                 ansiblePlaybook(
