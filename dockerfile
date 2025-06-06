@@ -25,7 +25,9 @@ RUN mkdir -p ~/.ssh && \
     chmod 644 ~/.ssh/demo1Ec2Key.pub
 
 RUN mkdir -p ~/.aws && \
-    echo "[cursor]\naws_access_key_id = ${AWS_ACCESS_KEY_ID}\naws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" > ~/.aws/credentials
+    echo "[cursor]\naws_access_key_id = ${AWS_ACCESS_KEY_ID}\naws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" > ~/.aws/credentials && \
+    mkdir -p /var/jenkins_home/shared && \
+    chmod 777 /var/jenkins_home/shared
 
 RUN apt-get update && apt-get install -y ansible
 

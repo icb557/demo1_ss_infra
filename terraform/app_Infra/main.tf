@@ -354,14 +354,11 @@ resource "aws_instance" "demo1_app_server1" {
     Env  = "${var.env}"
   }
 
-  #provisioner -> you can use ansible instead
   provisioner "local-exec" {
-    command = templatefile("${var.host_os}-ssh-config.tpl", {
+    command = templatefile("hosts.tpl", {
       hostname     = self.public_ip
       user         = "ubuntu"
-      identityfile = "~/.ssh/demo1Ec2Key"
     })
-    interpreter = var.host_os == "windows" ? ["PowerShell", "-Command"] : ["bash", "-c"]
   }
 }
 
