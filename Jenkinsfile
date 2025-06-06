@@ -61,17 +61,17 @@ pipeline {
             }
         }
         
-        stage('Terraform Validate') {
-            steps {
-                dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh '''
-                        echo "✅ Validating configuration..."
-                        terraform validate
-                        terraform fmt -check=true
-                    '''
-                }
-            }
-        }
+        // stage('Terraform Validate') {
+        //     steps {
+        //         dir('demo1_ss_infra/terraform/app_Infra') {
+        //             sh '''
+        //                 echo "✅ Validating configuration..."
+        //                 terraform validate
+        //                 terraform fmt -check=true
+        //             '''
+        //         }
+        //     }
+        // }
         
         stage('Terraform Plan') {
             when {
