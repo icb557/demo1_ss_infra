@@ -316,10 +316,10 @@ resource "aws_vpc_security_group_egress_rule" "allow_out_db_traffic" {
   description                  = "Allow outbound db traffic to app servers"
 }
 
-# resource "aws_key_pair" "demo1_ec2_key" {
-#  key_name   = "demo1_ec2_key"
-#  public_key = file("~/.ssh/demo1Ec2Key.pub")
-# }
+resource "aws_key_pair" "demo1_ec2_key" {
+  key_name   = "demo1_ec2_key"
+  public_key = file("~/.ssh/demo1Ec2Key.pub")
+}
 
 resource "aws_network_interface" "ec2_nic1_as1" {
   subnet_id       = values(aws_subnet.demo1_public_subnet)[0].id
