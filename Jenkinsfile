@@ -14,7 +14,7 @@ pipeline {
     parameters {
         choice(
             name: 'ACTION',
-            choices: ['apply', 'validate', 'plan', 'destroy'],
+            choices: ['apply', 'validate', 'plan', 'destroy', 'playbook'],
             description: 'Terraform action',
         )
         choice(
@@ -264,18 +264,6 @@ pipeline {
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                                 """
                             }
-                            // Set PR status to success
-                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {                                
-                                sh """                                    
-                                    curl -L \\
-                                    -X PUT \\
-                                    -H "Accept: application/vnd.github+json" \\
-                                    -H "Authorization: Bearer $TOKEN" \\
-                                    -H "X-GitHub-Api-Version: 2022-11-28" \\
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/merge \\
-                                    -d '{"commit_title":"merge PR: ${env.PR_NUMBER}"}'
-                                """
-                            }
                         }
                     }
                 }   
@@ -304,6 +292,9 @@ pipeline {
         }
         
         stage('Run Ansible Playbook') {
+            when {
+                expression { params.ACTION == 'apply' || params.ACTION == 'playbook' }
+            }
             steps {
                 ansiblePlaybook(
                     playbook: 'ansible/playbooks/infra_playbook.yml',
@@ -314,6 +305,9 @@ pipeline {
         }
 
         stage('Copy hosts file to shared path'){
+            when {
+                expression { params.ACTION == 'apply' || params.ACTION == 'playbook' }
+            }
             steps {
                 sh 'cp ansible/inventories/hosts.ini /var/lib/jenkins/shared/hosts.ini'
             }
@@ -328,6 +322,21 @@ pipeline {
         }
         success {
             echo "✅ Pipeline completed successfully"
+            script {
+                if (env.IS_PR == 'true') {
+                    withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                        sh '''
+                            curl -L \ 
+                            -X PUT \ 
+                            -H "Accept: application/vnd.github+json" \ 
+                            -H "Authorization: Bearer $TOKEN" \ 
+                            -H "X-GitHub-Api-Version: 2022-11-28" \ 
+                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/merge \ 
+                            -d '{"commit_title":"merge PR: ${env.PR_NUMBER}"}'
+                        '''
+                    }
+                }
+            }
         }
         failure {
             echo "❌ Pipeline failed"
