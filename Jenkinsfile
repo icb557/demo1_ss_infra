@@ -304,7 +304,7 @@ pipeline {
             }
             steps {
                 script {
-                    def appServerIp = readFile('/var/lib/jenkins/shared/app_server_ip.txt').trim()
+                    def appServerIp = readFile('/var/jenkins_home/app_server_ip.txt').trim()
                     env.APP_SERVER_IP = appServerIp
                 }
                 sh 'echo $APP_SERVER_IP'
