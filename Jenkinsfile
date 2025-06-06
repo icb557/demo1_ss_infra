@@ -312,6 +312,12 @@ pipeline {
                 )
             }
         }
+
+        stage('Copy hosts file to shared path'){
+            steps {
+                sh 'cp ansible/inventories/hosts.ini /var/lib/jenkins/shared/hosts.ini'
+            }
+        }
     }
     
     post {
