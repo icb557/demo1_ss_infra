@@ -264,7 +264,7 @@ pipeline {
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                                 """
                             }
-                            Set PR status to success
+                            // Set PR status to success
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {                                
                                 sh """                                    
                                     curl -L \\
