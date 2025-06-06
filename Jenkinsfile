@@ -302,6 +302,7 @@ pipeline {
                 expression { env.FORCED_ACTION == 'playbook' }
             }
             steps {
+                sh 'echo $APP_SERVER_IP'
                 ansiblePlaybook(
                     playbook: 'ansible/playbooks/infra_playbook.yml',
                     inventory: 'ansible/inventories/hosts',
