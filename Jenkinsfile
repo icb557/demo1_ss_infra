@@ -281,6 +281,7 @@ pipeline {
         //             def appServerIp = sh(script: 'terraform output -raw app_server_public_ip', returnStdout: true).trim()
         //             env.APP_SERVER_IP = appServerIp
         //             echo "Set APP_SERVER_IP to ${env.APP_SERVER_IP}"
+        //             sh 'echo $APP_SERVER_IP > /var/jenkins_home/app_server_ip.txt'
         //         }
         //     }
         // }
@@ -302,6 +303,10 @@ pipeline {
                 expression { env.FORCED_ACTION == 'playbook' }
             }
             steps {
+                script {
+                    def appServerIp = readFile('/var/lib/jenkins/shared/app_server_ip.txt').trim()
+                    env.APP_SERVER_IP = appServerIp
+                }
                 sh 'echo $APP_SERVER_IP'
                 ansiblePlaybook(
                     playbook: 'ansible/playbooks/infra_playbook.yml',
@@ -317,7 +322,7 @@ pipeline {
                 expression { env.FORCED_ACTION == 'playbook' }
             }
             steps {
-                sh 'cp ansible/inventories/hosts.ini /var/lib/jenkins/shared/hosts.ini'
+                sh 'cp ansible/inventories/hosts.ini /var/jenkins_home/hosts.ini'
             }
         }
     }
