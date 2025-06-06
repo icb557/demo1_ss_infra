@@ -36,10 +36,10 @@ pipeline {
                 echo "✅ Code downloaded"
                 sh """ls -al"""
 
-                // script {
-                //     env.FORCED_ACTION = 'playbook'  // Assign 'playbook' to a new environment variable
-                //     echo "Forced ACTION to: ${env.FORCED_ACTION}"  // For debugging
-                // }
+                script {
+                    env.FORCED_ACTION = 'playbook'  // Assign 'playbook' to a new environment variable
+                    echo "Forced ACTION to: ${env.FORCED_ACTION}"  // For debugging
+                }
             }
         }
         
