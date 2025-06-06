@@ -1,4 +1,4 @@
-cat << EOF > /var/jenkins_home/workspace/Infrastructure_pipeline_PR-43/demo1_ss_infra/terraform/app_Infra/ansible/inventories/hosts.ini
+cat << EOF > /var/jenkins_home/shared/hosts.ini
 
-[webservers] 
+[webservers]
 webserver ansible_host=${hostname} ansible_user=${user}
