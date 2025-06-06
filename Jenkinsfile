@@ -333,12 +333,12 @@ pipeline {
                 if (env.IS_PR == 'true') {
                     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                         sh '''
-                            curl -L \ 
-                            -X PUT \ 
-                            -H "Accept: application/vnd.github+json" \ 
-                            -H "Authorization: Bearer $TOKEN" \ 
-                            -H "X-GitHub-Api-Version: 2022-11-28" \ 
-                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/merge \ 
+                            curl -L \\
+                            -X PUT \\
+                            -H "Accept: application/vnd.github+json" \\ 
+                            -H "Authorization: Bearer $TOKEN" \\
+                            -H "X-GitHub-Api-Version: 2022-11-28" \\
+                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/merge \\ 
                             -d '{"commit_title":"merge PR: ${env.PR_NUMBER}"}'
                         '''
                     }
