@@ -282,6 +282,16 @@ pipeline {
             }
         }
         
+        stage('Set Environment Variables') {
+            steps {
+                script {
+                    def appServerIp = sh(script: 'terraform output -raw app_server_public_ip', returnStdout: true).trim()
+                    env.APP_SERVER_IP = appServerIp
+                    echo "Set APP_SERVER_IP to ${env.APP_SERVER_IP}"
+                }
+            }
+        }
+        
         stage('Terraform Destroy') {
             when {
                 expression { params.ACTION == 'destroy' && env.IS_PR != 'true' }
@@ -290,6 +300,16 @@ pipeline {
                 dir('demo1_ss_infra/terraform/app_Infra') {
                     sh 'terraform destroy -auto-approve'
                 }
+            }
+        }
+        
+        stage('Run Ansible Playbook') {
+            steps {
+                ansiblePlaybook(
+                    playbook: 'ansible/playbooks/infra_playbook.yml',
+                    inventory: 'ansible/inventories/hosts',
+                    credentialsId: 'ssh-key-appserver'
+                )
             }
         }
     }
