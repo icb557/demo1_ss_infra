@@ -1,2 +1,7 @@
 terraform/app_infra/.terraform/
+terraform/app_infra/terraform.tfstate
+terraform/app_infra/terraform.tfstate.backup
+terraform/app_infra/terraform.tfstate.lock.info
+terraform/app_infra/terraform.tfstate.lock
+
 terraform/cicd_infra/.terraform/
