@@ -5,10 +5,7 @@ USER root
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_ACCESS_KEY
 
-RUN apt-get update && apt-get install -y \
-    wget \
-    unzip \
-  && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y wget unzip curl python3 python3-pip gnupg && rm -rf /var/lib/apt/lists/*
 
 RUN wget --quiet https://releases.hashicorp.com/terraform/1.12.0/terraform_1.12.0_linux_amd64.zip \
   && unzip terraform_1.12.0_linux_amd64.zip \
@@ -30,4 +27,5 @@ RUN mkdir -p ~/.ssh && \
 RUN mkdir -p ~/.aws && \
     echo "[cursor]\naws_access_key_id = ${AWS_ACCESS_KEY_ID}\naws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" > ~/.aws/credentials
 
+RUN apt-get update && apt-get install -y ansible
 

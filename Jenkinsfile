@@ -165,7 +165,7 @@ pipeline {
             steps {
                 script {
                     def approved = false
-                    def maxRetries = 10
+                    def maxRetries = 5
                     def retryCount = 0
                     def sleepDuration = 60  // 1 minute
                     
@@ -348,9 +348,9 @@ pipeline {
                         //             https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${prHeadSha}
                         //         """
                         //     }
-                        } catch (error) {
-                            echo "Error setting commit status: " + error.getMessage()
-                        }
+                        // } catch (error) {
+                        //     echo "Error setting commit status: " + error.getMessage()
+                        // }
                     }
                 }
             }
