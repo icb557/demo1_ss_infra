@@ -219,18 +219,18 @@ resource "aws_instance" "cicd_server1" {
   ami           = data.aws_ami.server_ami.id
   instance_type = "t2.micro"
   key_name      = aws_key_pair.cicd_ec2_key.id
-  #user_data     = file("userdata.tpl")
-
+  user_data     = file("terraform/cicd_infra/userdata.tpl")
+  
   network_interface {
     network_interface_id = aws_network_interface.ec2_nic1_as1.id
     device_index         = 0
   }
-
+  
   tags = {
     Name = "cicd_server1"
     Env  = "${var.env}"
   }
-
+  
   provisioner "local-exec" {
     command = templatefile("${var.host_os}-ssh-config.tpl", {
       hostname     = self.public_ip
@@ -239,4 +239,20 @@ resource "aws_instance" "cicd_server1" {
     })
     interpreter = var.host_os == "windows" ? ["PowerShell", "-Command"] : ["bash", "-c"]
   }
+}
+
+resource "aws_ebs_volume" "jenkins_volume" {
+  availability_zone = aws_subnet.cicd_public_subnet1.availability_zone
+  size              = 8
+  type              = "gp2"
+  tags = {
+    Name = "jenkins-ebs-volume"
+    Env  = var.env
+  }
+}
+
+resource "aws_volume_attachment" "ebs_att" {
+  device_name = "/dev/sdh"
+  volume_id   = aws_ebs_volume.jenkins_volume.id
+  instance_id = aws_instance.cicd_server1.id
 }
