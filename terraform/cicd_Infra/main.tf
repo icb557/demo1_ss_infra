@@ -223,12 +223,12 @@ resource "aws_instance" "cicd_server1" {
     network_interface_id = aws_network_interface.ec2_nic1_as1.id
     device_index         = 0
   }
-
+  
   tags = {
     Name = "cicd_server1"
     Env  = "${var.env}"
   }
-
+  
   provisioner "local-exec" {
     command = templatefile("${var.host_os}-ssh-config.tpl", {
       hostname     = self.public_ip
