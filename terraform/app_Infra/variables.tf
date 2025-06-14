@@ -58,13 +58,10 @@ variable "db_creds" {
   description = "Map of database credentials"
   sensitive   = true
   type = object({
+    db_name = string
     username = string
     password = string
   })
-  default = {
-    username = "devops"
-    password = "devops123"
-  }
 }
 
 variable "db_instance_class" {

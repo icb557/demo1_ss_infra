@@ -29,10 +29,16 @@
         update: yes
       when: repo_git.stat.exists
 
+    - name: Create virtual environment for the app
+      command: python3 -m venv /opt/flaskapp/venv
+      args:
+        creates: "{{ app_dir }}/venv/bin/activate"
         
     - name: Install dependecies from requirements.txt
       pip:
         requirements: "{{ app_dir }}/requirements.txt"
+        virtualenv: "{{ app_dir }}/venv"
+        virtualenv_python: python3
         state: present
 
     - name: Verify migrations
@@ -68,6 +74,7 @@
           worker_class = 'sync'
           accesslog = "-"
           errorlog = "-"
+          
     - name: Run Gunicorn in background
       shell: |
         nohup gunicorn --config {{ app_dir }}/gunicorn_config.py 'app:create_app()' > /dev/null 2>&1 &

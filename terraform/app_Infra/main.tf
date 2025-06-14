@@ -177,6 +177,13 @@ module "app_server1" {
   host_os       = var.host_os
   ssh_user      = "ubuntu"
   identity_file = "~/.ssh/demo1Ec2Key"
+  
+  db_user       = var.db_creds.username
+  db_password   = var.db_creds.password
+  db_host       = module.db_server1.db_instance_endpoint
+  db_port       = module.db_server1.db_port
+  db_name       = var.db_creds.db_name
+  test_db_name  = "test_db"
 }
 
 module "db_server1" {
@@ -191,7 +198,7 @@ module "db_server1" {
   db_instance_class         = var.db_instance_class
   db_engine                 = "postgres"
   db_engine_version         = "17.4"
-  db_name                   = "demo1_db"
+  db_name                   = var.db_creds.db_name
   backup_retention_period   = 1
   allocated_storage         = 15
   storage_type              = "gp2"
