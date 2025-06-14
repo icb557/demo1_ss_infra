@@ -62,11 +62,6 @@ variable "db_creds" {
     username = string
     password = string
   })
-  default = {
-    db_name = "demo1_db"
-    username = "devops"
-    password = "devops123"
-  }
 }
 
 variable "db_instance_class" {
