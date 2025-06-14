@@ -3,8 +3,18 @@
   become: yes
   vars:
     app_dir: /opt/flaskapp
+    ansible_python_interpreter: /usr/bin/python3
     
   tasks:
+    - name: Enable universe repository
+      ansible.builtin.apt_repository:
+        repo: "deb http://archive.ubuntu.com/ubuntu {{ ansible_distribution_release }} universe"
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
     - name: Install dependecies for system
       package:
         name:
@@ -12,14 +22,15 @@
           - python3
           - python3-pip
           - gcc
+          - python3-venv
         state: present
 
-    - name: Install Gunicorn
-      pip:
-        name:
-          - gunicorn
+    - name: Install Gunicorn via APT
+      apt:
+        name: gunicorn
         state: present
-        
+        update_cache: yes
+
     - name: Create app directory
       file:
         path: "{{ app_dir }}"
