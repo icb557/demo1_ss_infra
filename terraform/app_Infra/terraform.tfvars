@@ -26,6 +26,7 @@ private_subnets = {
 }
 
 db_creds = {
+  db_name = "demo1_db"
   username = "devops"
   password = "devops123"
 }
