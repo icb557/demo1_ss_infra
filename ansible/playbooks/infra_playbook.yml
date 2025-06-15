@@ -25,12 +25,6 @@
           - python3-venv
         state: present
 
-    - name: Install Gunicorn via APT
-      apt:
-        name: gunicorn
-        state: present
-        update_cache: yes
-
     - name: Create app directory
       file:
         path: "{{ app_dir }}"
