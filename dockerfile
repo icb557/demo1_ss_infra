@@ -17,15 +17,17 @@ RUN apt-get update && \
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     ./aws/install
+    
+RUN apt-get update && apt-get install -y ansible
 
-RUN mkdir -p ~/.ssh && \
-    chmod 700 ~/.ssh && \
-    ssh-keygen -t ed25519 -f ~/.ssh/demo1Ec2Key -N 'devops' && \
-    chmod 600 ~/.ssh/demo1Ec2Key && \
-    chmod 644 ~/.ssh/demo1Ec2Key.pub
+USER jenkins
+RUN mkdir -p /var/jenkins_home/.ssh && \
+    chmod 700 /var/jenkins_home/.ssh && \
+    ssh-keygen -t ed25519 -f /var/jenkins_home/.ssh/demo1Ec2Key && \
+    chmod 600 /var/jenkins_home/.ssh/demo1Ec2Key && \
+    chmod 644 /var/jenkins_home/.ssh/demo1Ec2Key.pub
 
 RUN mkdir -p ~/.aws && \
     echo "[cursor]\naws_access_key_id = ${AWS_ACCESS_KEY_ID}\naws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}" > ~/.aws/credentials
 
-RUN apt-get update && apt-get install -y ansible
 
