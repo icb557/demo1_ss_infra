@@ -58,7 +58,7 @@ variable "db_creds" {
   description = "Map of database credentials"
   sensitive   = true
   type = object({
-    db_name = string
+    db_name  = string
     username = string
     password = string
   })
