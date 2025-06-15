@@ -1,7 +1,7 @@
-resource "aws_key_pair" "ec2_key_pair" {
-  key_name   = var.key_name
-  public_key = var.public_key
-}
+# resource "aws_key_pair" "ec2_key_pair" {
+#   key_name   = var.key_name
+#   public_key = var.public_key
+# }
 
 data "template_file" "env_vars" {
   template = file("${path.module}/templates/env-vars.tpl")
@@ -18,7 +18,7 @@ data "template_file" "env_vars" {
 resource "aws_instance" "app_server1" {
   ami           = var.ami
   instance_type = var.instance_type
-  key_name      = aws_key_pair.ec2_key_pair.id
+  key_name      = "ec2_key_pair"
   user_data = data.template_file.env_vars.rendered
 
   network_interface {
@@ -32,7 +32,6 @@ resource "aws_instance" "app_server1" {
     command = templatefile("${path.module}/templates/${var.host_os}-hosts.tpl", {
       hostname     = self.public_ip
       user         = var.ssh_user
-      identity_file = var.identity_file
     })
     interpreter = var.host_os == "windows" ? ["PowerShell", "-Command"] : ["bash", "-c"]
   }
