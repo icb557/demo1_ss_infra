@@ -14,7 +14,7 @@ pipeline {
     parameters {
         choice(
             name: 'ACTION',
-            choices: ['apply', 'validate', 'plan', 'destroy'],
+            choices: ['apply', 'validate', 'plan', 'destroy', 'playbook'],
             description: 'Terraform action',
         )
         choice(
@@ -35,6 +35,11 @@ pipeline {
                 sh """git clone -b FAD-44-task https://github.com/${REPO_OWNER}/${REPO_NAME}"""
                 echo "✅ Code downloaded"
                 sh """ls -al"""
+
+                script {
+                    env.FORCED_ACTION = 'playbook'  // Assign 'playbook' to a new environment variable
+                    echo "Forced ACTION to: ${env.FORCED_ACTION}"  // For debugging
+                }
             }
         }
         
@@ -50,7 +55,7 @@ pipeline {
                 dir('demo1_ss_infra/terraform/app_Infra') {
                     sh """
                         echo "🔧 Initializing Terraform..."
-                        terraform init -backend-config="key=terraform.tfstate"
+                        terraform init
                     """
                 }
             }
@@ -264,18 +269,6 @@ pipeline {
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                                 """
                             }
-                            // Set PR status to success
-                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {                                
-                                sh """                                    
-                                    curl -L \\
-                                    -X PUT \\
-                                    -H "Accept: application/vnd.github+json" \\
-                                    -H "Authorization: Bearer $TOKEN" \\
-                                    -H "X-GitHub-Api-Version: 2022-11-28" \\
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/merge \\
-                                    -d '{"commit_title":"merge PR: ${env.PR_NUMBER}"}'
-                                """
-                            }
                         }
                     }
                 }   
@@ -284,10 +277,13 @@ pipeline {
         
         stage('Set Environment Variables') {
             steps {
-                script {
-                    def appServerIp = sh(script: 'terraform output -raw app_server_public_ip', returnStdout: true).trim()
-                    env.APP_SERVER_IP = appServerIp
-                    echo "Set APP_SERVER_IP to ${env.APP_SERVER_IP}"
+                dir('demo1_ss_infra/terraform/app_Infra') {
+                    script {
+                        def appServerIp = sh(script: 'terraform output -raw app_server_public_ip', returnStdout: true).trim()
+                        env.APP_SERVER_IP = appServerIp
+                        echo "Set APP_SERVER_IP to ${env.APP_SERVER_IP}"
+                        sh 'echo $APP_SERVER_IP > /var/jenkins_home/app_server_ip.txt'
+                    }
                 }
             }
         }
@@ -304,20 +300,37 @@ pipeline {
         }
         
         stage('Run Ansible Playbook') {
+            when {
+                // expression { params.ACTION == 'apply' || params.ACTION == 'playbook' }
+                expression { env.FORCED_ACTION == 'playbook' }
+            }
             steps {
-                ansiblePlaybook(
-                    playbook: 'ansible/playbooks/infra_playbook.yml',
-                    inventory: 'ansible/inventories/hosts',
-                    credentialsId: 'ssh-key-appserver'
-                )
+                dir('demo1_ss_infra/terraform/app_Infra') {     
+                    // script {
+                    //     def appServerIp = readFile('/var/jenkins_home/app_server_ip.txt').trim()
+                    //     env.APP_SERVER_IP = appServerIp
+                    // }
+                    sh 'echo $APP_SERVER_IP'
+                    ansiblePlaybook(
+                        playbook: 'ansible/playbooks/infra_playbook.yml',
+                        inventory: '/var/jenkins_home/shared/hosts.ini',
+                        credentialsId: 'ssh-key-appserver'
+                    )
+                }
             }
         }
 
-        stage('Copy hosts file to shared path'){
-            steps {
-                sh 'cp ansible/inventories/hosts.ini /var/lib/jenkins/shared/hosts.ini'
-            }
-        }
+        // stage('Copy hosts file to shared path'){
+        //     when {
+        //         expression { params.ACTION == 'apply' || params.ACTION == 'playbook' }
+        //         //expression { env.FORCED_ACTION == 'playbook' }
+        //     }
+        //     steps {
+        //         dir('demo1_ss_infra/terraform/app_Infra') {
+        //             sh 'cp ansible/inventories/hosts.ini /var/jenkins_home/shared/hosts.ini'
+        //         }
+        //     }
+        // }
     }
     
     post {
@@ -328,6 +341,21 @@ pipeline {
         }
         success {
             echo "✅ Pipeline completed successfully"
+            script {
+                if (env.IS_PR == 'true') {
+                    withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                        sh '''
+                            curl -L \\
+                            -X PUT \\
+                            -H "Accept: application/vnd.github+json" \\ 
+                            -H "Authorization: Bearer $TOKEN" \\
+                            -H "X-GitHub-Api-Version: 2022-11-28" \\
+                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/merge \\ 
+                            -d '{"commit_title":"merge PR: ${env.PR_NUMBER}"}'
+                        '''
+                    }
+                }
+            }
         }
         failure {
             echo "❌ Pipeline failed"

@@ -1,4 +1,4 @@
-host_os     = "windows"
+host_os     = "linux"
 env         = "dev"
 vpc_cidr    = "10.0.0.0/16"
 allowed_ips = ["181.71.139.122/32", "3.89.142.113/32", "38.156.230.172/32"]
