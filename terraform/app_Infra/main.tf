@@ -193,13 +193,13 @@ module "app_server1" {
   host_os       = var.host_os
   ssh_user      = "ubuntu"
   identity_file = "~/.ssh/demo1Ec2Key"
-  
-  db_user       = var.db_creds.username
-  db_password   = var.db_creds.password
-  db_host       = module.db_server1.db_instance_endpoint
-  db_port       = module.db_server1.db_port
-  db_name       = var.db_creds.db_name
-  test_db_name  = "test_db"
+
+  db_user      = var.db_creds.username
+  db_password  = var.db_creds.password
+  db_host      = module.db_server1.db_instance_endpoint
+  db_port      = module.db_server1.db_port
+  db_name      = var.db_creds.db_name
+  test_db_name = "test_db"
 }
 
 module "db_server1" {

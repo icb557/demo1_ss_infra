@@ -7,6 +7,14 @@
     gunicorn_bind: 0.0.0.0:8000
     
   tasks:
+    # - name: Check if any gunicorn processes are running
+    #   shell: pgrep -f gunicorn
+    #   register: gunicorn_pids
+
+    # - name: Kill all running gunicorn processes if any exist
+    #   shell: sudo pkill -f gunicorn
+    #   when: gunicorn_pids.rc == 0
+
     - name: Verify if repo was cloned
       stat:
         path: "{{ app_dir }}/.git"
@@ -29,6 +37,20 @@
         update: yes
       when: repo_git.stat.exists
 
+    - name: create .env file
+      copy:
+        dest: "{{ app_dir }}/.env"
+        content: |
+          SECRET_KEY=devops
+
+          # AWS RDS Database
+          DB_USER=devops
+          DB_PASSWORD=devops123
+          DB_HOST=terraform-20250614203828949400000007.ckls84y4c34i.us-east-1.rds.amazonaws.com
+          DB_PORT=5432
+          DB_NAME=demo1_db
+          TEST_DB_NAME=test_db
+
     - name: Create virtual environment for the app
       command: python3 -m venv /opt/flaskapp/venv
       args:
@@ -48,22 +70,38 @@
 
     - name: Init migrations if not exist
       shell: |
-        flask db init
+        {{ app_dir }}/venv/bin/flask db init
       args:
         chdir: "{{ app_dir }}"
       when: not migrations_dir.stat.exists
 
     - name: Run flask db migrate
       shell: |
-        flask db migrate -m "Auto migration"
+        {{ app_dir }}/venv/bin/flask db migrate -m "Auto migration"
       args:
         chdir: "{{ app_dir }}"
 
     - name: Ejecutar flask db upgrade
       shell: |
-        flask db upgrade
+        {{ app_dir }}/venv/bin/flask db upgrade
       args:
         chdir: "{{ app_dir }}"
+
+    - name: Install Gunicorn
+      pip:
+        name:
+          - gunicorn
+        virtualenv: "{{ app_dir }}/venv"
+        virtualenv_python: python3
+        state: present
+
+    - name: Create logs directory for gunicorn
+      file:
+        path: "{{ app_dir }}/logs"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
 
     - name: Create config file to gunicorn
       copy:
@@ -72,12 +110,12 @@
           workers = {{ gunicorn_workers }}
           bind = "{{ gunicorn_bind }}"
           worker_class = 'sync'
-          accesslog = "-"
-          errorlog = "-"
+          accesslog = "{{ app_dir }}/logs/access.log"
+          errorlog = "{{ app_dir }}/logs/error.log"
           
     - name: Run Gunicorn in background
       shell: |
-        nohup gunicorn --config {{ app_dir }}/gunicorn_config.py 'app:create_app()' > /dev/null 2>&1 &
+        nohup {{ app_dir }}/venv/bin/gunicorn --config {{ app_dir }}/gunicorn_config.py 'app:create_app()' > /dev/null 2>&1 &
       args:
         chdir: "{{ app_dir }}"
       async: 0
