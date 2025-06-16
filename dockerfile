@@ -18,7 +18,12 @@ RUN apt-get update && \
     unzip awscliv2.zip && \
     ./aws/install
     
-RUN apt-get update && apt-get install -y ansible
+RUN apt-get install -y ansible
+
+RUN if ! command -v infisical &> /dev/null; then \
+    curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash && \
+    apt-get update && apt-get install -y infisical; \
+    fi
 
 USER jenkins
 RUN mkdir -p /var/jenkins_home/.ssh && \
