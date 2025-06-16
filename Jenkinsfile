@@ -294,12 +294,13 @@ pipeline {
         stage('Run Ansible Playbook') {
             when {
                 expression { params.ACTION == 'apply' || params.ACTION == 'playbook' }
-                //expression { env.FORCED_ACTION == 'playbook' }
             }
             steps {
-                sh 'echo "[ssh_connection]\nssh_args = -o ControlMaster=no" | tee /var/jenkins_home/workspace/test/ansible.cfg'
-                sh 'echo $ANSIBLE_CONFIG'
-                ansiblePlaybook credentialsId: 'ssh-key-appserver', disableHostKeyChecking: true, installation: 'Ansible', inventory: '/var/jenkins_home/shared/hosts.ini', playbook: '/var/jenkins_home/workspace/test/demo1_ss_infra/ansible/playbooks/infra_playbook.yml', vaultTmpPath: ''
+                dir('demo1_ss_infra') {    
+                    sh 'echo "[ssh_connection]\nssh_args = -o ControlMaster=no" | tee ansible.cfg'
+                    sh 'echo $ANSIBLE_CONFIG'
+                    ansiblePlaybook credentialsId: 'ssh-key-appserver', disableHostKeyChecking: true, installation: 'Ansible', inventory: '/var/jenkins_home/shared/hosts.ini', playbook: 'ansible/playbooks/infra_playbook.yml', vaultTmpPath: ''
+                }
             }
         }
 
