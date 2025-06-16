@@ -123,9 +123,9 @@ pipeline {
                     //         ansible/playbooks/infra_playbook.yml \\
                     //         --ssh-common-args='-o StrictHostKeyChecking=no'
                     // """
-                sh 'echo "[ssh_connection]\nssh_args = -o ControlMaster=no" | tee ansible.cfg'
-                sh 'echo $ANSIBLE_CONFIG'
-                ansiblePlaybook credentialsId: 'ssh-key-appserver', disableHostKeyChecking: true, installation: 'Ansible', inventory: '/var/jenkins_home/shared/hosts.ini', playbook: 'ansible/playbooks/infra_playbook.yml', vaultTmpPath: ''
+                    sh 'echo "[ssh_connection]\nssh_args = -o ControlMaster=no" | tee ansible.cfg'
+                    sh 'echo $ANSIBLE_CONFIG'
+                    ansiblePlaybook credentialsId: 'ssh-key-appserver', disableHostKeyChecking: true, installation: 'Ansible', inventory: '/var/jenkins_home/shared/hosts.ini', playbook: 'ansible/playbooks/infra_playbook.yml', vaultTmpPath: ''
                 }
             }
         }

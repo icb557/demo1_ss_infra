@@ -282,7 +282,7 @@ pipeline {
         
         stage('Terraform Destroy') {
             when {
-                expression { params.ACTION == 'destroy' && env.IS_PR != 'true' }
+                expression { params.ACTION == 'destroy' }
             }
             steps {
                 dir('demo1_ss_infra/terraform/app_Infra') {
@@ -335,8 +335,8 @@ pipeline {
                         result: currentBuild.currentResult, 
                         title: "Infrastructure Pipeline", 
                         webhookURL: 'https://discord.com/api/webhooks/1383560954637189302/Ge7_KdL1a2YBpVfZ4v39mNnY0MTX05MwwxcIdd1mWIrAYJhvn3hqEfKy3nY5dct7Ggrb'
-            script {
-                if (env.IS_PR == 'true') {
+            if (env.IS_PR == 'true') {                  
+                script {
                     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                         sh '''
                             curl -L \\
@@ -359,8 +359,8 @@ pipeline {
                         result: currentBuild.currentResult, 
                         title: "Infrastructure Pipeline", 
                         webhookURL: 'https://discord.com/api/webhooks/1383560954637189302/Ge7_KdL1a2YBpVfZ4v39mNnY0MTX05MwwxcIdd1mWIrAYJhvn3hqEfKy3nY5dct7Ggrb'
-            script {
-                if (env.IS_PR == 'true') {
+            if (env.IS_PR == 'true') { 
+                script {
                     // Comment on PR about failure
                     def failureComment = """
                     ### ❌ Pipeline failed
@@ -383,6 +383,7 @@ pipeline {
                 }
             }
             echo "❌ Pipeline failed"
+        }                        
         }
     }
 } 
