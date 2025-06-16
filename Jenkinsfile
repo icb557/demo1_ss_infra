@@ -335,8 +335,8 @@ pipeline {
                         result: currentBuild.currentResult, 
                         title: "Infrastructure Pipeline", 
                         webhookURL: 'https://discord.com/api/webhooks/1383560954637189302/Ge7_KdL1a2YBpVfZ4v39mNnY0MTX05MwwxcIdd1mWIrAYJhvn3hqEfKy3nY5dct7Ggrb'
-            if (env.IS_PR == 'true') {                  
-                script {
+            script {
+                if (env.IS_PR == 'true') {
                     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                         sh '''
                             curl -L \\
@@ -359,8 +359,8 @@ pipeline {
                         result: currentBuild.currentResult, 
                         title: "Infrastructure Pipeline", 
                         webhookURL: 'https://discord.com/api/webhooks/1383560954637189302/Ge7_KdL1a2YBpVfZ4v39mNnY0MTX05MwwxcIdd1mWIrAYJhvn3hqEfKy3nY5dct7Ggrb'
-            if (env.IS_PR == 'true') {
-                script {
+            script {
+                if (env.IS_PR == 'true') {
                     // Comment on PR about failure
                     def failureComment = """
                     ### ❌ Pipeline failed
