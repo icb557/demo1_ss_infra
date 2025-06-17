@@ -225,4 +225,14 @@ module "db_server1" {
   }
 }
 
+data "infisical_secret" "db_password" {
+  path = "DB_PASSWORD"
+}
 
+data "infisical_secret" "db_user" {
+  path = "DB_USER"
+}
+
+data "infisical_secret" "db_password" {
+  path = "DB_PASSWORD"
+}

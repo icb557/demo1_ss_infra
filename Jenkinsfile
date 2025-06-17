@@ -9,6 +9,9 @@ pipeline {
         REPO_NAME = 'demo1_ss_infra'
         PR_NUMBER = "${env.CHANGE_ID}"
         IS_PR = "${env.CHANGE_ID ? true : false}"
+
+        //add to secrets jenkins
+        TF_VAR_infisical_token = credentials('infisical-token')
     }
     
     parameters {
