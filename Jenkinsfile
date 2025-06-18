@@ -14,6 +14,7 @@ pipeline {
         INFISICAL_TOKEN = credentials('infisical-token-id')
         INFISICAL_PROJECT_ID = credentials('infisical-project-id')
         ANSIBLE_CONFIG = "${WORKSPACE}/ansible.cfg"
+        DISCORD_WEBHOOK= credentials('discord-webhook')
     }
     
     parameters {
@@ -334,7 +335,7 @@ pipeline {
                         link: env.BUILD_URL, 
                         result: currentBuild.currentResult, 
                         title: "Infrastructure Pipeline", 
-                        webhookURL: 'https://discord.com/api/webhooks/1383560954637189302/Ge7_KdL1a2YBpVfZ4v39mNnY0MTX05MwwxcIdd1mWIrAYJhvn3hqEfKy3nY5dct7Ggrb'
+                        webhookURL: env.DISCORD_WEBHOOK
             script {
                 if (env.IS_PR == 'true') {
                     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
@@ -358,7 +359,7 @@ pipeline {
                         link: env.BUILD_URL, 
                         result: currentBuild.currentResult, 
                         title: "Infrastructure Pipeline", 
-                        webhookURL: 'https://discord.com/api/webhooks/1383560954637189302/Ge7_KdL1a2YBpVfZ4v39mNnY0MTX05MwwxcIdd1mWIrAYJhvn3hqEfKy3nY5dct7Ggrb'
+                        webhookURL: env.DISCORD_WEBHOOK
             script {
                 if (env.IS_PR == 'true') {
                     // Comment on PR about failure
