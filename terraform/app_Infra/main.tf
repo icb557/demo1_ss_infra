@@ -235,6 +235,7 @@ module "app_elb" {
 
 # --- Auto Scaling Group ---
 module "app_asg" {
+  host_os       = var.host_os
   source        = "./modules/compute/asg"
   name          = "demo1-app-asg"
   name_prefix   = "demo1-app-asg-"

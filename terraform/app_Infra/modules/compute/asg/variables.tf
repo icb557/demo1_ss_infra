@@ -1,3 +1,8 @@
+variable "host_os" {
+  description = "Host OS"
+  type        = string
+}
+
 variable "name" {
   description = "Name of the Auto Scaling Group"
   type        = string
