@@ -179,29 +179,6 @@ module "vnic" {
   security_group_ids = [module.security_groups.app_server_sg_id]
 }
 
-module "app_server1" {
-  source               = "./modules/compute/ec2"
-  ami                  = data.aws_ami.server_ami.id
-  instance_type        = "t2.micro"
-  key_name             = "demo1_ec2_key"
-  public_key           = file("~/.ssh/demo1Ec2Key.pub")
-  network_interface_id = module.vnic.network_interface_id_as1
-  tags = {
-    Name = "demo1_app_server1"
-    Env  = var.env
-  }
-  host_os       = var.host_os
-  ssh_user      = "ubuntu"
-  identity_file = "~/.ssh/demo1Ec2Key"
-
-  db_user      = var.db_creds.username
-  db_password  = var.db_creds.password
-  db_host      = module.db_server1.db_instance_endpoint
-  db_port      = module.db_server1.db_port
-  db_name      = var.db_creds.db_name
-  test_db_name = "test_db"
-}
-
 module "db_server1" {
   source                    = "./modules/database/rds"
   subnet_ids                = module.vpc.private_subnet_ids
@@ -225,14 +202,54 @@ module "db_server1" {
   }
 }
 
-data "infisical_secret" "db_password" {
-  path = "DB_PASSWORD"
+# data "infisical_secret" "db_password" {
+#   path = "DB_PASSWORD"
+# }
+
+# data "infisical_secret" "db_user" {
+#   path = "DB_USER"
+# }
+
+# data "infisical_secret" "db_password" {
+#   path = "DB_PASSWORD"
+# }
+
+# --- Application Load Balancer ---
+module "app_elb" {
+  source             = "./modules/compute/elb"
+  name               = "demo1-app-elb"
+  vpc_id             = module.vpc.vpc_id
+  subnet_ids         = module.vpc.public_subnet_ids
+  security_group_ids = [module.security_groups.elb_sg_id]
+  tags = {
+    Name = "demo1-app-elb"
+    Env  = var.env
+  }
+  target_group_name     = "demo1-app-tg"
+  target_group_port     = 8000
+  target_group_protocol = "HTTP"
+  health_check_path     = "/"
+  listener_port         = 80
+  listener_protocol     = "HTTP"
 }
 
-data "infisical_secret" "db_user" {
-  path = "DB_USER"
-}
-
-data "infisical_secret" "db_password" {
-  path = "DB_PASSWORD"
+# --- Auto Scaling Group ---
+module "app_asg" {
+  source        = "./modules/compute/asg"
+  name          = "demo1-app-asg"
+  name_prefix   = "demo1-app-asg-"
+  ami           = data.aws_ami.server_ami.id
+  instance_type = "t2.micro"
+  key_name      = "ec2_key_pair"
+  db_host       = module.db_server1.db_instance_endpoint
+  security_group_ids = [module.security_groups.app_server_sg_id]
+  subnet_ids         = module.vpc.public_subnet_ids
+  target_group_arns  = [module.app_elb.target_group_arn]
+  tags = {
+    Name = "demo1-app-asg"
+    Env  = var.env
+  }
+  min_size         = 1
+  max_size         = 1
+  desired_capacity = 1
 }

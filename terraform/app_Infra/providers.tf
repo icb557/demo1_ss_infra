@@ -4,10 +4,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    infisical = {
-      source  = "infisical/infisical"
-      version = ">= 0.2.0"
-    }
+    # infisical = {
+    #   source  = "infisical/infisical"
+    #   version = ">= 0.2.0"
+    # }
   }
 
   backend "s3" {
@@ -25,6 +25,6 @@ provider "aws" {
   profile                  = "cursor"
 }
 
-provider "infisical" {
-  token = var.infisical_token
-}
+# provider "infisical" {
+#   token = var.infisical_token
+# }
