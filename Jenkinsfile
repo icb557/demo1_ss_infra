@@ -49,24 +49,38 @@ pipeline {
         }
         
         stage('Terraform Init') {
-            steps {                
-                dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh """
-                        echo "🔧 Initializing Terraform..."
-                        terraform init -backend-config="key=terraform.tfstate"
-                    """
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-credentials',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    dir('demo1_ss_infra/terraform/app_Infra') {
+                        sh """
+                            echo "🔧 Initializing Terraform..."
+                            terraform init -backend-config="key=terraform.tfstate"
+                        """
+                    }
                 }
             }
         }
         
         stage('Terraform Validate') {
             steps {
-                dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh '''
-                        echo "✅ Validating configuration..."
-                        terraform validate
-                        terraform fmt -check=true
-                    '''
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-credentials',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    dir('demo1_ss_infra/terraform/app_Infra') {
+                        sh '''
+                            echo "✅ Validating configuration..."
+                            terraform validate
+                            terraform fmt -check=true
+                        '''
+                    }
                 }
             }
         }
@@ -80,81 +94,87 @@ pipeline {
                 }
             }
             steps {
-                
-                dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh """
-                        echo "📋 Generating plan for ${params.ENVIRONMENT}..."
-                        terraform plan -out=tfplan
-                        terraform show -no-color tfplan > plan.txt
-                    """
-                    
-                    archiveArtifacts artifacts: 'plan.txt'
-                    
-                    script {
-                        if (env.IS_PR == 'true') {
-                            // Create GitHub Gist with the plan
-                            def planContent = readFile('plan.txt')
-                            def gistDescription = "Terraform Plan for PR #${env.PR_NUMBER} - ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-                            def gistFileName = "terraform-plan-pr-${env.PR_NUMBER}.txt"
-                            
-                            // Create Gist using GitHub API
-                            def gistContent = """
-                            {
-                                "description": "${gistDescription}",
-                                "public": false,
-                                "files": {
-                                "${gistFileName}": {
-                                    "content": ${groovy.json.JsonOutput.toJson(planContent)}
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-credentials',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    dir('demo1_ss_infra/terraform/app_Infra') {
+                        sh """
+                            echo "📋 Generating plan for ${params.ENVIRONMENT}..."
+                            terraform plan -out=tfplan
+                            terraform show -no-color tfplan > plan.txt
+                        """
+                        
+                        archiveArtifacts artifacts: 'plan.txt'
+                        
+                        script {
+                            if (env.IS_PR == 'true') {
+                                // Create GitHub Gist with the plan
+                                def planContent = readFile('plan.txt')
+                                def gistDescription = "Terraform Plan for PR #${env.PR_NUMBER} - ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+                                def gistFileName = "terraform-plan-pr-${env.PR_NUMBER}.txt"
+                                
+                                // Create Gist using GitHub API
+                                def gistContent = """
+                                {
+                                    "description": "${gistDescription}",
+                                    "public": false,
+                                    "files": {
+                                    "${gistFileName}": {
+                                        "content": ${groovy.json.JsonOutput.toJson(planContent)}
+                                    }
+                                    }
                                 }
+                                """
+                                def gistResponse = ""
+                                withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                                    gistResponse = sh(
+                                        script: """
+                                            curl -X POST \\
+                                            -H "Authorization: token $TOKEN" \\
+                                            -H "Accept: application/vnd.github.v3+json" \\
+                                            -d '${gistContent}' \\
+                                            https://api.github.com/gists
+                                        """,
+                                        returnStdout: true
+                                    ).trim()
                                 }
-                            }
-                            """
-                            def gistResponse = ""
-                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                                gistResponse = sh(
-                                    script: """
+                                def gistData = readJSON text: gistResponse
+                                def gistUrl = gistData.html_url
+                                
+                                // Comment on PR with Gist link
+                                def prComment = """
+                                ### Terraform Plan 📋
+                                
+                                A Terraform plan has been generated for this PR.
+                                [View the full plan here](${gistUrl})
+                                
+                                **Plan summary:**
+                                ```
+                                ${planContent.split('\n').findAll { it.contains('Plan:') || it.contains('No changes') }.join('\n')}
+                                ```
+                                
+                                To approve this plan and allow its application, a reviewer must comment with: 
+                                ✅ **Approve plan**
+                                """
+                                
+                                def jsonPayload = groovy.json.JsonOutput.toJson([body: prComment])
+
+                                withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                                    sh """
                                         curl -X POST \\
                                         -H "Authorization: token $TOKEN" \\
                                         -H "Accept: application/vnd.github.v3+json" \\
-                                        -d '${gistContent}' \\
-                                        https://api.github.com/gists
-                                    """,
-                                    returnStdout: true
-                                ).trim()
+                                        -H "Content-Type: application/json" \\
+                                        -d '${jsonPayload}' \\
+                                        https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+                                    """
+                                }
+                                // Store Gist URL as environment variable for later stages
+                                env.PLAN_GIST_URL = gistUrl
                             }
-                            def gistData = readJSON text: gistResponse
-                            def gistUrl = gistData.html_url
-                            
-                            // Comment on PR with Gist link
-                            def prComment = """
-                            ### Terraform Plan 📋
-                            
-                            A Terraform plan has been generated for this PR.
-                            [View the full plan here](${gistUrl})
-                            
-                            **Plan summary:**
-                            ```
-                            ${planContent.split('\n').findAll { it.contains('Plan:') || it.contains('No changes') }.join('\n')}
-                            ```
-                            
-                            To approve this plan and allow its application, a reviewer must comment with: 
-                            ✅ **Approve plan**
-                            """
-                            
-                            def jsonPayload = groovy.json.JsonOutput.toJson([body: prComment])
-
-                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                                sh """
-                                    curl -X POST \\
-                                    -H "Authorization: token $TOKEN" \\
-                                    -H "Accept: application/vnd.github.v3+json" \\
-                                    -H "Content-Type: application/json" \\
-                                    -d '${jsonPayload}' \\
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
-                                """
-                            }
-                            // Store Gist URL as environment variable for later stages
-                            env.PLAN_GIST_URL = gistUrl
                         }
                     }
                 }
@@ -236,48 +256,54 @@ pipeline {
                 expression { params.ACTION == 'apply' }
             }
             steps {
-                
-                dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh '''
-                        echo "🚀 Applying changes..."
-                        terraform apply tfplan
-                    '''
-                    
-                    script {
-                        if (env.IS_PR == 'true') {
-                            // Comment on PR that plan was applied
-                            def applyComment = """
-                            ### Terraform Apply completed ✅
-                            
-                            The Terraform plan has been applied successfully.
-                            The PR can be merged now.
-                            
-                            [Original plan](${env.PLAN_GIST_URL})
-                            """
-                            
-                            def jsonPayload = groovy.json.JsonOutput.toJson([body: applyComment])
-                            
-                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                                sh """
-                                    curl -X POST \\
-                                    -H "Authorization: token $TOKEN" \\
-                                    -H "Accept: application/vnd.github.v3+json" \\
-                                    -H "Content-Type: application/json" \\
-                                    -d '${jsonPayload}' \\
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-credentials',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    dir('demo1_ss_infra/terraform/app_Infra') {
+                        sh '''
+                            echo "🚀 Applying changes..."
+                            terraform apply tfplan
+                        '''
+                        
+                        script {
+                            if (env.IS_PR == 'true') {
+                                // Comment on PR that plan was applied
+                                def applyComment = """
+                                ### Terraform Apply completed ✅
+                                
+                                The Terraform plan has been applied successfully.
+                                The PR can be merged now.
+                                
+                                [Original plan](${env.PLAN_GIST_URL})
                                 """
-                            }
-                            // Set PR status to success
-                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {                                
-                                sh """                                    
-                                    curl -L \\
-                                    -X PUT \\
-                                    -H "Accept: application/vnd.github+json" \\
-                                    -H "Authorization: Bearer $TOKEN" \\
-                                    -H "X-GitHub-Api-Version: 2022-11-28" \\
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/merge \\
-                                    -d '{"commit_title":"merge PR: ${env.PR_NUMBER}"}'
-                                """
+                                
+                                def jsonPayload = groovy.json.JsonOutput.toJson([body: applyComment])
+                                
+                                withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                                    sh """
+                                        curl -X POST \\
+                                        -H "Authorization: token $TOKEN" \\
+                                        -H "Accept: application/vnd.github.v3+json" \\
+                                        -H "Content-Type: application/json" \\
+                                        -d '${jsonPayload}' \\
+                                        https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+                                    """
+                                }
+                                // Set PR status to success
+                                withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {                                
+                                    sh """                                    
+                                        curl -L \\
+                                        -X PUT \\
+                                        -H "Accept: application/vnd.github+json" \\
+                                        -H "Authorization: Bearer $TOKEN" \\
+                                        -H "X-GitHub-Api-Version: 2022-11-28" \\
+                                        https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/merge \\
+                                        -d '{"commit_title":"merge PR: ${env.PR_NUMBER}"}'
+                                    """
+                                }
                             }
                         }
                     }
@@ -287,10 +313,17 @@ pipeline {
         
         stage('Set Environment Variables') {
             steps {
-                script {
-                    def appServerIp = sh(script: 'terraform output -raw app_server_public_ip', returnStdout: true).trim()
-                    env.APP_SERVER_IP = appServerIp
-                    echo "Set APP_SERVER_IP to ${env.APP_SERVER_IP}"
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-credentials',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    script {
+                        def appServerIp = sh(script: 'terraform output -raw app_server_public_ip', returnStdout: true).trim()
+                        env.APP_SERVER_IP = appServerIp
+                        echo "Set APP_SERVER_IP to ${env.APP_SERVER_IP}"
+                    }
                 }
             }
         }
@@ -300,8 +333,15 @@ pipeline {
                 expression { params.ACTION == 'destroy' && env.IS_PR != 'true' }
             }
             steps {
-                dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh 'terraform destroy -auto-approve'
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-credentials',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    dir('demo1_ss_infra/terraform/app_Infra') {
+                        sh 'terraform destroy -auto-approve'
+                    }
                 }
             }
         }
