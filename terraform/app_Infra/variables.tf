@@ -70,8 +70,8 @@ variable "db_instance_class" {
   default     = "db.t3.micro"
 }
 
-variable "infisical_token" {
-  description = "Infisical personal access token"
-  type        = string
-  sensitive   = true
-}
+# variable "infisical_token" {
+#   description = "Infisical personal access token"
+#   type        = string
+#   sensitive   = true
+# }
