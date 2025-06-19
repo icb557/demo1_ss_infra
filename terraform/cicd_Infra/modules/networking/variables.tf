@@ -1,13 +1,3 @@
-variable "host_os" {
-  type    = string
-  default = "linux"
-}
-
-variable "env" {
-  type    = string
-  default = "dev"
-}
-
 variable "resource_group_name" {
   description = "Name of the resource group"
   type        = string
@@ -16,7 +6,6 @@ variable "resource_group_name" {
 variable "location" {
   description = "Azure region where resources will be created"
   type        = string
-  default     = "eastus"
 }
 
 variable "vnet_address_space" {
@@ -38,23 +27,12 @@ variable "grafana_subnet_prefix" {
 }
 
 variable "allowed_ips" {
-  description = "List of IP addresses allowed to access the VMs"
+  description = "List of IP addresses allowed to access SSH and Jenkins"
   type        = list(string)
-}
-
-variable "jenkins_admin_password" {
-  description = "Password for the Jenkins admin user"
-  type        = string
-  sensitive   = true
 }
 
 variable "tags" {
   description = "Tags to be applied to all resources"
   type        = map(string)
-  default = {
-    Environment = "cicd"
-    Project     = "jenkins"
-  }
-}
-
-
+  default     = {}
+} 

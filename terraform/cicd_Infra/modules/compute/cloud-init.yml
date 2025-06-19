@@ -1,0 +1,72 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - software-properties-common
+  - gnupg
+  - lsb-release
+
+runcmd:
+  # Install Java 21
+  - apt-get update
+  - apt-get install -y wget apt-transport-https
+  - wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | apt-key add -
+  - echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list
+  - apt-get update
+  - apt-get install -y temurin-21-jdk
+  - update-alternatives --set java /usr/lib/jvm/temurin-21-jdk-amd64/bin/java
+  
+  # Add Jenkins repository
+  - curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null
+  - echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/ | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null
+  
+  # Update package list
+  - apt-get update
+  
+  # Install Jenkins
+  - apt-get install -y jenkins
+  
+  # Start Jenkins service
+  - systemctl start jenkins
+  - systemctl enable jenkins
+  
+  # Wait for the disk to be available
+  - sleep 30
+  
+  # Create Jenkins home directory on the data disk
+  - mkdir -p /mnt/jenkins
+  
+  # Format the disk if it's not already formatted
+  - |
+    if ! blkid /dev/sdc; then
+      mkfs -t ext4 /dev/sdc
+    fi
+  
+  # Add disk to fstab for automatic mounting
+  - echo "/dev/sdc /mnt/jenkins ext4 defaults,nofail 0 2" >> /etc/fstab
+  
+  # Mount the disk
+  - mount -a
+  
+  # Set proper permissions
+  - chown -R jenkins:jenkins /mnt/jenkins
+  
+  # Update Jenkins configuration to use the new home directory
+  - sed -i 's|JENKINS_HOME=/var/lib/jenkins|JENKINS_HOME=/mnt/jenkins|' /etc/default/jenkins
+  
+  # Copy existing Jenkins data if it exists
+  - |
+    if [ -d "/var/lib/jenkins" ] && [ "$(ls -A /var/lib/jenkins)" ]; then
+      cp -r /var/lib/jenkins/* /mnt/jenkins/
+    fi
+  
+  # Restart Jenkins to apply changes
+  - systemctl restart jenkins
+  
+  # Get initial admin password
+  - cat /var/lib/jenkins/secrets/initialAdminPassword > /home/azureuser/jenkins_initial_password.txt
+  - chown azureuser:azureuser /home/azureuser/jenkins_initial_password.txt 

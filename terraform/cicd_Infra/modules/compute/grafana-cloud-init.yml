@@ -1,0 +1,57 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - apt-transport-https
+  - software-properties-common
+  - wget
+  - gnupg2
+
+runcmd:
+  # Add Grafana repository
+  - wget -q -O - https://packages.grafana.com/gpg.key | apt-key add -
+  - echo "deb https://packages.grafana.com/oss/deb stable main" | tee -a /etc/apt/sources.list.d/grafana.list
+  
+  # Update package list
+  - apt-get update
+  
+  # Install Grafana
+  - apt-get install -y grafana
+  
+  # Start Grafana service
+  - systemctl start grafana-server
+  - systemctl enable grafana-server
+  
+  # Wait for the disk to be available
+  - sleep 30
+  
+  # Create Grafana data directory on the data disk
+  - mkdir -p /mnt/grafana
+  
+  # Format the disk if it's not already formatted
+  - |
+    if ! blkid /dev/sdc; then
+      mkfs -t ext4 /dev/sdc
+    fi
+  
+  # Add disk to fstab for automatic mounting
+  - echo "/dev/sdc /mnt/grafana ext4 defaults,nofail 0 2" >> /etc/fstab
+  
+  # Mount the disk
+  - mount -a
+  
+  # Set proper permissions
+  - chown -R grafana:grafana /mnt/grafana
+  
+  # Update Grafana configuration to use the new data directory
+  - sed -i 's|data = /var/lib/grafana|data = /mnt/grafana|' /etc/grafana/grafana.ini
+  
+  # Copy existing Grafana data if it exists
+  - |
+    if [ -d "/var/lib/grafana" ] && [ "$(ls -A /var/lib/grafana)" ]; then
+      cp -r /var/lib/grafana/* /mnt/grafana/
+    fi
+  
+  # Restart Grafana to apply changes
+  - systemctl restart grafana-server 
