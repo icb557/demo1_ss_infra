@@ -3,21 +3,24 @@ pipeline {
     
     environment {
         AWS_DEFAULT_REGION = 'us-east-1'
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
         TF_CLI_ARGS = '-no-color'
         GITHUB_TOKEN = credentials('github-token')
         REPO_OWNER = 'icb557'
         REPO_NAME = 'demo1_ss_infra'
         PR_NUMBER = "${env.CHANGE_ID}"
         IS_PR = "${env.CHANGE_ID ? true : false}"
-
-        //add to secrets jenkins
-        TF_VAR_infisical_token = credentials('infisical-token')
+        INFISICAL_TOKEN = credentials('infisical-token-id')
+        INFISICAL_PROJECT_ID = credentials('infisical-project-id')
+        ANSIBLE_CONFIG = "${WORKSPACE}/ansible.cfg"
+        DISCORD_WEBHOOK= credentials('discord-webhook')
     }
     
     parameters {
         choice(
             name: 'ACTION',
-            choices: ['apply', 'validate', 'plan', 'destroy'],
+            choices: ['apply', 'validate', 'plan', 'destroy', 'playbook'],
             description: 'Terraform action',
         )
         choice(
@@ -35,9 +38,14 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                sh """git clone -b FAD-44-task https://github.com/${REPO_OWNER}/${REPO_NAME}"""
+                sh """git clone https://github.com/${REPO_OWNER}/${REPO_NAME}"""
                 echo "✅ Code downloaded"
                 sh """ls -al"""
+
+                // script {
+                //     env.FORCED_ACTION = 'playbook'  // Assign 'playbook' to a new environment variable
+                //     echo "Forced ACTION to: ${env.FORCED_ACTION}"  // For debugging
+                // }
             }
         }
         
@@ -53,7 +61,7 @@ pipeline {
                 dir('demo1_ss_infra/terraform/app_Infra') {
                     sh """
                         echo "🔧 Initializing Terraform..."
-                        terraform init -backend-config="key=terraform.tfstate"
+                        terraform init
                     """
                 }
             }
@@ -267,37 +275,15 @@ pipeline {
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                                 """
                             }
-                            // Set PR status to success
-                            withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {                                
-                                sh """                                    
-                                    curl -L \\
-                                    -X PUT \\
-                                    -H "Accept: application/vnd.github+json" \\
-                                    -H "Authorization: Bearer $TOKEN" \\
-                                    -H "X-GitHub-Api-Version: 2022-11-28" \\
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/merge \\
-                                    -d '{"commit_title":"merge PR: ${env.PR_NUMBER}"}'
-                                """
-                            }
                         }
                     }
                 }   
             }
         }
         
-        stage('Set Environment Variables') {
-            steps {
-                script {
-                    def appServerIp = sh(script: 'terraform output -raw app_server_public_ip', returnStdout: true).trim()
-                    env.APP_SERVER_IP = appServerIp
-                    echo "Set APP_SERVER_IP to ${env.APP_SERVER_IP}"
-                }
-            }
-        }
-        
         stage('Terraform Destroy') {
             when {
-                expression { params.ACTION == 'destroy' && env.IS_PR != 'true' }
+                expression { params.ACTION == 'destroy' }
             }
             steps {
                 dir('demo1_ss_infra/terraform/app_Infra') {
@@ -307,18 +293,32 @@ pipeline {
         }
         
         stage('Run Ansible Playbook') {
+            when {
+                expression { params.ACTION == 'apply' || params.ACTION == 'playbook' }
+            }
             steps {
-                ansiblePlaybook(
-                    playbook: 'ansible/playbooks/infra_playbook.yml',
-                    inventory: 'ansible/inventories/hosts',
-                    credentialsId: 'ssh-key-appserver'
-                )
+                dir('demo1_ss_infra') {    
+                    sh 'echo "[ssh_connection]\nssh_args = -o ControlMaster=no" | tee ansible.cfg'
+                    sh 'echo $ANSIBLE_CONFIG'
+                    ansiblePlaybook credentialsId: 'ssh-key-appserver', disableHostKeyChecking: true, installation: 'Ansible', inventory: '/var/jenkins_home/shared/hosts.ini', playbook: 'ansible/playbooks/infra_playbook.yml', vaultTmpPath: ''
+                }
             }
         }
 
-        stage('Copy hosts file to shared path'){
+        stage('Update infisical secrets') {
+            when {
+                expression { params.ACTION == 'apply' }
+            }
             steps {
-                sh 'cp ansible/inventories/hosts.ini /var/lib/jenkins/shared/hosts.ini'
+                script {
+                    def db_host = readFile('/var/jenkins_home/shared/db_endpoint.txt').trim()
+                    sh """
+                        infisical secrets set DB_HOST="${db_host}" \
+                        --env=prod \
+                        --projectId=${INFISICAL_PROJECT_ID} \
+                        --token=${INFISICAL_TOKEN}
+                    """
+                }
             }
         }
     }
@@ -330,11 +330,36 @@ pipeline {
             }
         }
         success {
+            discordSend description: "Jenkins pipeline '${env.JOB_NAME}', action '${params.ACTION}', Build ${env.BUILD_DISPLAY_NAME} successful", 
+                        footer: "", 
+                        link: env.BUILD_URL, 
+                        result: currentBuild.currentResult, 
+                        title: "Infrastructure Pipeline", 
+                        webhookURL: env.DISCORD_WEBHOOK
+            script {
+                if (env.IS_PR == 'true') {
+                    withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                        sh '''
+                            curl -L \\
+                            -X PUT \\
+                            -H "Accept: application/vnd.github+json" \\ 
+                            -H "Authorization: Bearer $TOKEN" \\
+                            -H "X-GitHub-Api-Version: 2022-11-28" \\
+                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/merge \\ 
+                            -d '{"commit_title":"merge PR: ${env.PR_NUMBER}"}'
+                        '''
+                    }
+                }
+            }
             echo "✅ Pipeline completed successfully"
         }
         failure {
-            echo "❌ Pipeline failed"
-            
+            discordSend description: "Jenkins pipeline '${env.JOB_NAME}', action '${params.ACTION}', Build ${env.BUILD_DISPLAY_NAME} failed", 
+                        footer: "", 
+                        link: env.BUILD_URL, 
+                        result: currentBuild.currentResult, 
+                        title: "Infrastructure Pipeline", 
+                        webhookURL: env.DISCORD_WEBHOOK
             script {
                 if (env.IS_PR == 'true') {
                     // Comment on PR about failure
@@ -355,34 +380,10 @@ pipeline {
                             -d '${jsonPayload}' \\
                             https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                         """
-                        
-                        // echo "Debug: Attempting to fetch PR head commit SHA..."
-                        // def prHeadSha = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
-                        // echo "Debug: Using commit SHA: ${prHeadSha}"
-                        // try {
-                        //     def statusPayload = groovy.json.JsonOutput.toJson([
-                        //         state: "failure",
-                        //         context: "terraform-pipeline",
-                        //         description: "Terraform pipeline failed",
-                        //         target_url: "${env.BUILD_URL}"
-                        //     ])
-                            
-                        //     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                        //         sh """
-                        //             curl -X POST \\
-                        //             -H "Authorization: token $TOKEN" \\
-                        //             -H "Accept: application/vnd.github.v3+json" \\
-                        //             -H "Content-Type: application/json" \\
-                        //             -d '${statusPayload}' \\
-                        //             https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/statuses/${prHeadSha}
-                        //         """
-                        //     }
-                        // } catch (error) {
-                        //     echo "Error setting commit status: " + error.getMessage()
-                        // }
                     }
                 }
             }
+            echo "❌ Pipeline failed"
         }
     }
 } 

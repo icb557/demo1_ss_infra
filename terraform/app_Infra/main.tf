@@ -127,8 +127,8 @@ module "security_groups" {
       to_port     = 8000
       protocol    = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
-      description = "Allow inbound HTTPS from anywhere on port 8000 for application"
-    }
+      description = "Allow inbound HTTPS from anywhere to the flask app"
+    },
     ], [
     for ip in var.allowed_ips : {
       from_port   = 22
