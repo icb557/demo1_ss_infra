@@ -186,12 +186,12 @@ module "db_server1" {
   db_parameter_group_family = "postgres17"
   db_parameter_name         = "log_connections"
   db_parameter_value        = "1"
-  db_instance_username      = var.db_creds.username
-  db_instance_password      = var.db_creds.password
+  db_instance_username      = data.infisical_secrets.db_creds.secrets["DB_USER"].value
+  db_instance_password      = data.infisical_secrets.db_creds.secrets["DB_PASSWORD"].value
   db_instance_class         = var.db_instance_class
   db_engine                 = "postgres"
   db_engine_version         = "17.4"
-  db_name                   = var.db_creds.db_name
+  db_name                   = data.infisical_secrets.db_creds.secrets["DB_NAME"].value
   backup_retention_period   = 1
   allocated_storage         = 15
   storage_type              = "gp2"
@@ -201,18 +201,6 @@ module "db_server1" {
     Env = var.env
   }
 }
-
-# data "infisical_secret" "db_password" {
-#   path = "DB_PASSWORD"
-# }
-
-# data "infisical_secret" "db_user" {
-#   path = "DB_USER"
-# }
-
-# data "infisical_secret" "db_password" {
-#   path = "DB_PASSWORD"
-# }
 
 # --- Application Load Balancer ---
 module "app_elb" {

@@ -78,7 +78,7 @@ pipeline {
                     """
                     
                     archiveArtifacts artifacts: 'plan.txt'
-
+                    
                 }
             }
         }
@@ -92,7 +92,10 @@ pipeline {
                 dir('demo1_ss_infra/terraform/app_Infra') {
                     sh '''
                         echo "🚀 Applying changes..."
-                        terraform apply tfplan
+                        terraform apply \\
+                          -replace=null_resource.create_hosts_file \\
+                          -replace=null_resource.create_db_endpoint_file \\
+                          tfplan
                     '''            
                 }
             }
