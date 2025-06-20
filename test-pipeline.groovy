@@ -73,7 +73,7 @@ pipeline {
                     sh """echo $HOME"""
                     sh """
                         echo "📋 Generating plan for ${params.ENVIRONMENT}..."
-                        terraform plan -out=tfplan
+                        terraform plan -var 'infisical_project_id=${env.INFISICAL_PROJECT_ID}' -var 'infisical_token=${env.INFISICAL_TOKEN}' -out=tfplan
                         terraform show -no-color tfplan > plan.txt
                     """
                     
@@ -90,27 +90,27 @@ pipeline {
             steps {
                 
                 dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh '''
+                    sh """
                         echo "🚀 Applying changes..."
                         terraform apply \\
-                          -replace=null_resource.create_hosts_file \\
-                          -replace=null_resource.create_db_endpoint_file \\
+                          -var 'infisical_project_id=${env.INFISICAL_PROJECT_ID}' \\
+                          -var 'infisical_token=${env.INFISICAL_TOKEN}' \\
                           tfplan
-                    '''            
+                    """            
                 }
             }
         }
         
-        // stage('Terraform Destroy') {
-        //     when {
-        //         expression { params.ACTION == 'destroy' }
-        //     }
-        //     steps {
-        //         dir('demo1_ss_infra/terraform/app_Infra') {
-        //             sh 'terraform destroy -auto-approve'
-        //         }
-        //     }
-        // }
+        stage('Terraform Destroy') {
+            when {
+                expression { params.ACTION == 'destroy' }
+            }
+            steps {
+                dir('demo1_ss_infra/terraform/app_Infra') {
+                    sh 'terraform destroy -auto-approve'
+                }
+            }
+        }
         
         // stage('Run Ansible Playbook') {
         //     when {
@@ -142,7 +142,7 @@ pipeline {
             }
             steps {
                 script {
-                    def db_host = readFile('/var/var/lib/jenkins/shared/db_endpoint.txt').trim()
+                    def db_host = readFile('/var/lib/jenkins/agents/local-agent/shared/db_endpoint.txt').trim()
                     sh """
                         infisical secrets set DB_HOST="${db_host}" \
                         --env=prod \
