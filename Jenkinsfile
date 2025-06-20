@@ -91,6 +91,7 @@ pipeline {
                 
                 dir('demo1_ss_infra/terraform/app_Infra') {
                     sh """
+                        #!/bin/bash
                         echo "📋 Generating plan for ${params.ENVIRONMENT}..."
                         terraform plan -var 'infisical_project_id=${env.INFISICAL_PROJECT_ID}' -var 'infisical_token=${env.INFISICAL_TOKEN}' -out=tfplan
                         terraform show -no-color tfplan > plan.txt
@@ -247,6 +248,7 @@ pipeline {
                 
                 dir('demo1_ss_infra/terraform/app_Infra') {
                     sh """
+                        #!/bin/bash
                         echo "🚀 Applying changes..."
                         terraform apply \\
                           -var 'infisical_project_id=${env.INFISICAL_PROJECT_ID}' \\
