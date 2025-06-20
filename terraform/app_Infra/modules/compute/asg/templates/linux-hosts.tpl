@@ -1,4 +1,4 @@
-cat << EOF > /var/jenkins_home/shared/hosts.ini
+cat << EOF > /var/lib/jenkins/shared/hosts.ini
 
 [webservers]
 %{ for instance in instances ~}

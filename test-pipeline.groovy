@@ -70,6 +70,7 @@ pipeline {
             steps {
                 
                 dir('demo1_ss_infra/terraform/app_Infra') {
+                    sh """echo $HOME"""
                     sh """
                         echo "📋 Generating plan for ${params.ENVIRONMENT}..."
                         terraform plan -out=tfplan
@@ -77,6 +78,7 @@ pipeline {
                     """
                     
                     archiveArtifacts artifacts: 'plan.txt'
+
                 }
             }
         }
