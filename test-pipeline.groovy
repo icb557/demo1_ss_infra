@@ -36,69 +36,105 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                deleteDir()
-                sh """git clone -b FAD-42-task https://github.com/${REPO_OWNER}/${REPO_NAME}"""
-                echo "✅ Code downloaded"
-                sh """ls -al"""
+                echo "Terraform Checkout"
+            }
+            // steps {
+            //     deleteDir()
+            //     sh """git clone -b FAD-42-task https://github.com/${REPO_OWNER}/${REPO_NAME}"""
+            //     echo "✅ Code downloaded"
+            //     sh """ls -al"""
 
-                // script {
-                //     env.FORCED_ACTION = 'playbook'  // Assign 'playbook' to a new environment variable
-                //     echo "Forced ACTION to: ${env.FORCED_ACTION}"  // For debugging
-                // }
+            //     // script {
+            //     //     env.FORCED_ACTION = 'playbook'  // Assign 'playbook' to a new environment variable
+            //     //     echo "Forced ACTION to: ${env.FORCED_ACTION}"  // For debugging
+            //     // }
+            // }
+        }
+
+        stage('Terraform Version'){
+            steps {
+                echo "Terraform Version"
             }
         }
     
         stage('Terraform Init') {
-            steps {                
-                dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh """
-                        echo "🔧 Initializing Terraform..."
-                        terraform init
-                    """
-                }
+            steps {
+                echo "Terraform Init"
+            }
+            // steps {                
+            //     dir('demo1_ss_infra/terraform/app_Infra') {
+            //         sh """
+            //             echo "🔧 Initializing Terraform..."
+            //             terraform init
+            //         """
+            //     }
+            // }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                echo "Terraform Validate"
             }
         }
         
         stage('Terraform Plan') {
-            when {
-                anyOf {
-                    expression { params.ACTION == 'plan' }
-                    expression { params.ACTION == 'apply' }
-                    expression { env.IS_PR == 'true' }
-                }
-            }
             steps {
+                echo "Terraform Plan"
+            }
+            // when {
+            //     anyOf {
+            //         expression { params.ACTION == 'plan' }
+            //         expression { params.ACTION == 'apply' }
+            //         expression { env.IS_PR == 'true' }
+            //     }
+            // }
+            // steps {
                 
-                dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh """echo $HOME"""
-                    sh """
-                        echo "📋 Generating plan for ${params.ENVIRONMENT}..."
-                        terraform plan -var 'infisical_project_id=${env.INFISICAL_PROJECT_ID}' -var 'infisical_token=${env.INFISICAL_TOKEN}' -out=tfplan
-                        terraform show -no-color tfplan > plan.txt
-                    """
+            //     dir('demo1_ss_infra/terraform/app_Infra') {
+            //         sh """echo $HOME"""
+            //         sh """
+            //             echo "📋 Generating plan for ${params.ENVIRONMENT}..."
+            //             terraform plan -var 'infisical_project_id=${env.INFISICAL_PROJECT_ID}' -var 'infisical_token=${env.INFISICAL_TOKEN}' -out=tfplan
+            //             terraform show -no-color tfplan > plan.txt
+            //         """
                     
-                    archiveArtifacts artifacts: 'plan.txt'
+            //         archiveArtifacts artifacts: 'plan.txt'
                     
-                }
+            //     }
+            // }
+        }
+
+        stage('Check PR Approval') {
+            steps {
+                echo "Terraform Version"
+            }
+        }
+
+        stage('Manual Approval') {
+            steps {
+                echo "Terraform Version"
             }
         }
         
         stage('Terraform Apply') {
-            when {
-                expression { params.ACTION == 'apply' }
-            }
             steps {
-                
-                dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh """
-                        echo "🚀 Applying changes..."
-                        terraform apply \\
-                          -var 'infisical_project_id=${env.INFISICAL_PROJECT_ID}' \\
-                          -var 'infisical_token=${env.INFISICAL_TOKEN}' \\
-                          tfplan
-                    """            
-                }
+                echo "Terraform Apply"
             }
+            // when {
+            //     expression { params.ACTION == 'apply' }
+            // }
+            // steps {
+                
+            //     dir('demo1_ss_infra/terraform/app_Infra') {
+            //         sh """
+            //             echo "🚀 Applying changes..."
+            //             terraform apply \\
+            //               -var 'infisical_project_id=${env.INFISICAL_PROJECT_ID}' \\
+            //               -var 'infisical_token=${env.INFISICAL_TOKEN}' \\
+            //               tfplan
+            //         """            
+            //     }
+            // }
         }
         
         stage('Terraform Destroy') {
@@ -137,20 +173,23 @@ pipeline {
         // }
 
         stage('Update infisical secrets') {
-            when {
-                expression { params.ACTION == 'apply' }
-            }
             steps {
-                script {
-                    def db_host = readFile('/var/lib/jenkins/agents/local-agent/shared/db_endpoint.txt').trim()
-                    sh """
-                        infisical secrets set DB_HOST="${db_host}" \
-                        --env=prod \
-                        --projectId=${INFISICAL_PROJECT_ID} \
-                        --token=${INFISICAL_TOKEN}
-                    """
-                }
+                echo "Update infisical secrets"
             }
+            // when {
+            //     expression { params.ACTION == 'apply' }
+            // }
+            // steps {
+            //     script {
+            //         def db_host = readFile('/var/lib/jenkins/agents/local-agent/shared/db_endpoint.txt').trim()
+            //         sh """
+            //             infisical secrets set DB_HOST="${db_host}" \
+            //             --env=prod \
+            //             --projectId=${INFISICAL_PROJECT_ID} \
+            //             --token=${INFISICAL_TOKEN}
+            //         """
+            //     }
+            // }
         }
     }
     

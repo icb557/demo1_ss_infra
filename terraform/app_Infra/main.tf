@@ -231,6 +231,9 @@ module "app_asg" {
   instance_type      = "t2.micro"
   key_name           = "ec2_key_pair"
   db_host            = module.db_server1.db_instance_endpoint
+  db_user            = data.infisical_secrets.db_creds.secrets["DB_USER"].value
+  db_password        = data.infisical_secrets.db_creds.secrets["DB_PASSWORD"].value
+  db_name            = data.infisical_secrets.db_creds.secrets["DB_NAME"].value
   security_group_ids = [module.security_groups.app_server_sg_id]
   subnet_ids         = module.vpc.public_subnet_ids
   target_group_arns  = [module.app_elb.target_group_arn]

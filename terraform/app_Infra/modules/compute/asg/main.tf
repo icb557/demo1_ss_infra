@@ -3,6 +3,9 @@ data "template_file" "app_setup" {
   vars = {
     DB_HOST     = local.db_endpoint
     DB_PORT     = local.db_port
+    DB_PASSWORD = var.db_password
+    DB_USER     = var.db_user
+    DB_NAME     = var.db_name
   }
 }
 

@@ -13,7 +13,6 @@ pipeline {
         IS_PR = "${env.CHANGE_ID ? true : false}"
         INFISICAL_TOKEN = credentials('infisical-token-id')
         INFISICAL_PROJECT_ID = credentials('infisical-project-id')
-        // ANSIBLE_CONFIG = "${WORKSPACE}/ansible.cfg"
         DISCORD_WEBHOOK= credentials('discord-webhook')
     }
     
@@ -43,11 +42,6 @@ git clone -b FAD-42-task https://github.com/${REPO_OWNER}/${REPO_NAME}
 echo "✅ Code downloaded"
 ls -al
 """
-
-                // script {
-                //     env.FORCED_ACTION = 'playbook'  // Assign 'playbook' to a new environment variable
-                //     echo "Forced ACTION to: ${env.FORCED_ACTION}"  // For debugging
-                // }
             }
         }
         
@@ -301,19 +295,6 @@ curl -X POST \
                 }
             }
         }
-        
-        // stage('Run Ansible Playbook') {
-        //     when {
-        //         expression { params.ACTION == 'apply' || params.ACTION == 'playbook' }
-        //     }
-        //     steps {
-        //         dir('demo1_ss_infra') {    
-        //             sh 'echo "[ssh_connection]\nssh_args = -o ControlMaster=no" | tee ansible.cfg'
-        //             sh 'echo $ANSIBLE_CONFIG'
-        //             ansiblePlaybook credentialsId: 'ssh-key-appserver', disableHostKeyChecking: true, installation: 'Ansible', inventory: '/var/jenkins_home/shared/hosts.ini', playbook: 'ansible/playbooks/infra_playbook.yml', vaultTmpPath: ''
-        //         }
-        //     }
-        // }
 
         stage('Update infisical secrets') {
             when {

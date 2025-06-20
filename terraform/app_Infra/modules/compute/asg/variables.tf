@@ -71,4 +71,22 @@ variable "db_host" {
   description = "DB host"
   type        = string
   default     = ""
-} 
+}
+
+variable "db_user" {
+  description = "DB user"
+  type        = string
+  default     = ""
+}
+
+variable "db_password" {
+  description = "DB password"
+  type        = string
+  default     = ""
+}
+
+variable "db_name" {
+  description = "DB name"
+  type        = string
+  default     = ""
+}
