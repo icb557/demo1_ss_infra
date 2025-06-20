@@ -26,7 +26,7 @@ provider "aws" {
 }
 
 provider "infisical" {
-    auth = {
-      token = var.infisical_token
+  auth = {
+    token = var.infisical_token
   }
 }

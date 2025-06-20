@@ -223,14 +223,14 @@ module "app_elb" {
 
 # --- Auto Scaling Group ---
 module "app_asg" {
-  host_os       = var.host_os
-  source        = "./modules/compute/asg"
-  name          = "demo1-app-asg"
-  name_prefix   = "demo1-app-asg-"
-  ami           = data.aws_ami.server_ami.id
-  instance_type = "t2.micro"
-  key_name      = "ec2_key_pair"
-  db_host       = module.db_server1.db_instance_endpoint
+  host_os            = var.host_os
+  source             = "./modules/compute/asg"
+  name               = "demo1-app-asg"
+  name_prefix        = "demo1-app-asg-"
+  ami                = data.aws_ami.server_ami.id
+  instance_type      = "t2.micro"
+  key_name           = "ec2_key_pair"
+  db_host            = module.db_server1.db_instance_endpoint
   security_group_ids = [module.security_groups.app_server_sg_id]
   subnet_ids         = module.vpc.public_subnet_ids
   target_group_arns  = [module.app_elb.target_group_arn]
