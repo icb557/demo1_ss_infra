@@ -1,4 +1,4 @@
-host_os     = "linux"
+host_os     = "windows"
 env         = "dev"
 vpc_cidr    = "10.0.0.0/16"
 allowed_ips = ["181.71.139.122/32", "3.89.142.113/32", "38.156.230.172/32"]
@@ -23,12 +23,6 @@ private_subnets = {
     cidr = "10.0.3.0/24"
     az   = "us-east-1b"
   }
-}
-
-db_creds = {
-  db_name  = "demo1_db"
-  username = "devops"
-  password = "devops123"
 }
 
 

@@ -54,24 +54,18 @@ variable "private_subnets" {
   }
 }
 
-variable "db_creds" {
-  description = "Map of database credentials"
-  sensitive   = true
-  type = object({
-    db_name  = string
-    username = string
-    password = string
-  })
-}
-
 variable "db_instance_class" {
   description = "Database instance class"
   type        = string
   default     = "db.t3.micro"
 }
 
-# variable "infisical_token" {
-#   description = "Infisical personal access token"
-#   type        = string
-#   sensitive   = true
-# }
+variable "infisical_token" {
+  description = "Infisical personal access token"
+  type        = string
+}
+
+variable "infisical_project_id" {
+  description = "Infisical project id"
+  type        = string
+}

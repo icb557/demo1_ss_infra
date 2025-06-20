@@ -39,11 +39,11 @@ cat > "$APP_DIR/.env" <<EOF
 SECRET_KEY=devops
 
 # AWS RDS Database
-DB_USER=devops
-DB_PASSWORD=devops123
+DB_USER=${DB_USER}
+DB_PASSWORD=${DB_PASSWORD}
 DB_HOST=${DB_HOST}
 DB_PORT=${DB_PORT}
-DB_NAME=demo1_db
+DB_NAME=${DB_NAME}
 TEST_DB_NAME=test_db
 EOF
 
