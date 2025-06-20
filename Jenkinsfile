@@ -38,9 +38,11 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                sh """git clone -b FAD-42-task https://github.com/${REPO_OWNER}/${REPO_NAME}"""
-                echo "✅ Code downloaded"
-                sh """ls -al"""
+                sh """#!/bin/bash
+git clone -b FAD-42-task https://github.com/${REPO_OWNER}/${REPO_NAME}
+echo "✅ Code downloaded"
+ls -al
+"""
 
                 // script {
                 //     env.FORCED_ACTION = 'playbook'  // Assign 'playbook' to a new environment variable
@@ -51,18 +53,20 @@ pipeline {
         
         stage('Terraform Version') {
             steps {
-                sh 'terraform --version'
-                sh 'aws --version'
+                sh """#!/bin/bash
+terraform --version
+aws --version
+"""
             }
         }
         
         stage('Terraform Init') {
             steps {                
                 dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh """
-                        echo "🔧 Initializing Terraform..."
-                        terraform init
-                    """
+                    sh """#!/bin/bash
+echo "🔧 Initializing Terraform..."
+terraform init
+"""
                 }
             }
         }
@@ -70,11 +74,11 @@ pipeline {
         stage('Terraform Validate') {
             steps {
                 dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh '''
-                        echo "✅ Validating configuration..."
-                        terraform validate
-                        terraform fmt -check=true
-                    '''
+                    sh '''#!/bin/bash
+echo "✅ Validating configuration..."
+terraform validate
+terraform fmt -check=true
+'''
                 }
             }
         }
@@ -90,12 +94,11 @@ pipeline {
             steps {
                 
                 dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh """
-                        #!/bin/bash
-                        echo "📋 Generating plan for ${params.ENVIRONMENT}..."
-                        terraform plan -var 'infisical_project_id=${env.INFISICAL_PROJECT_ID}' -var 'infisical_token=${env.INFISICAL_TOKEN}' -out=tfplan
-                        terraform show -no-color tfplan > plan.txt
-                    """
+                    sh """#!/bin/bash
+echo "📋 Generating plan for ${params.ENVIRONMENT}..."
+terraform plan -var 'infisical_project_id=${env.INFISICAL_PROJECT_ID}' -var 'infisical_token=${env.INFISICAL_TOKEN}' -out=tfplan
+terraform show -no-color tfplan > plan.txt
+"""
                     
                     archiveArtifacts artifacts: 'plan.txt'
                     
@@ -121,13 +124,13 @@ pipeline {
                             def gistResponse = ""
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                                 gistResponse = sh(
-                                    script: """
-                                        curl -X POST \\
-                                        -H "Authorization: token $TOKEN" \\
-                                        -H "Accept: application/vnd.github.v3+json" \\
-                                        -d '${gistContent}' \\
-                                        https://api.github.com/gists
-                                    """,
+                                    script: """#!/bin/bash
+curl -X POST \\
+-H \"Authorization: token $TOKEN\" \\
+-H \"Accept: application/vnd.github.v3+json\" \\
+-d '${gistContent}' \\
+https://api.github.com/gists
+""",
                                     returnStdout: true
                                 ).trim()
                             }
@@ -153,14 +156,14 @@ pipeline {
                             def jsonPayload = groovy.json.JsonOutput.toJson([body: prComment])
 
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                                sh """
-                                    curl -X POST \\
-                                    -H "Authorization: token $TOKEN" \\
-                                    -H "Accept: application/vnd.github.v3+json" \\
-                                    -H "Content-Type: application/json" \\
-                                    -d '${jsonPayload}' \\
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
-                                """
+                                sh """#!/bin/bash
+curl -X POST \\
+-H \"Authorization: token $TOKEN\" \\
+-H \"Accept: application/vnd.github.v3+json\" \\
+-H \"Content-Type: application/json\" \\
+-d '${jsonPayload}' \\
+https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+"""
                             }
                             // Store Gist URL as environment variable for later stages
                             env.PLAN_GIST_URL = gistUrl
@@ -247,14 +250,13 @@ pipeline {
             steps {
                 
                 dir('demo1_ss_infra/terraform/app_Infra') {
-                    sh """
-                        #!/bin/bash
-                        echo "🚀 Applying changes..."
-                        terraform apply \\
-                          -var 'infisical_project_id=${env.INFISICAL_PROJECT_ID}' \\
-                          -var 'infisical_token=${env.INFISICAL_TOKEN}' \\
-                          tfplan
-                    """
+                    sh """#!/bin/bash
+echo "🚀 Applying changes..."
+terraform apply \
+  -var 'infisical_project_id=${env.INFISICAL_PROJECT_ID}' \
+  -var 'infisical_token=${env.INFISICAL_TOKEN}' \
+  tfplan
+"""
                     
                     script {
                         if (env.IS_PR == 'true') {
@@ -271,14 +273,14 @@ pipeline {
                             def jsonPayload = groovy.json.JsonOutput.toJson([body: applyComment])
                             
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                                sh """
-                                    curl -X POST \\
-                                    -H "Authorization: token $TOKEN" \\
-                                    -H "Accept: application/vnd.github.v3+json" \\
-                                    -H "Content-Type: application/json" \\
-                                    -d '${jsonPayload}' \\
-                                    https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
-                                """
+                                sh """#!/bin/bash
+curl -X POST \\
+-H \"Authorization: token $TOKEN\" \\
+-H \"Accept: application/vnd.github.v3+json\" \\
+-H \"Content-Type: application/json\" \\
+-d '${jsonPayload}' \\
+https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+"""
                             }
                         }
                     }
@@ -317,12 +319,12 @@ pipeline {
             steps {
                 script {
                     def db_host = readFile('/var/lib/jenkins/agents/local-agent/shared/db_endpoint.txt').trim()
-                    sh """
-                        infisical secrets set DB_HOST="${db_host}" \
-                        --env=prod \
-                        --projectId=${INFISICAL_PROJECT_ID} \
-                        --token=${INFISICAL_TOKEN}
-                    """
+                    sh """#!/bin/bash
+infisical secrets set DB_HOST=\"${db_host}\" \
+--env=prod \
+--projectId=${INFISICAL_PROJECT_ID} \
+--token=${INFISICAL_TOKEN}
+"""
                 }
             }
         }
@@ -344,15 +346,15 @@ pipeline {
             script {
                 if (env.IS_PR == 'true') {
                     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                        sh '''
-                            curl -L \\
-                            -X PUT \\
-                            -H "Accept: application/vnd.github+json" \\ 
-                            -H "Authorization: Bearer $TOKEN" \\
-                            -H "X-GitHub-Api-Version: 2022-11-28" \\
-                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/merge \\ 
-                            -d '{"commit_title":"merge PR: ${env.PR_NUMBER}"}'
-                        '''
+                        sh '''#!/bin/bash
+curl -L \
+-X PUT \
+-H "Accept: application/vnd.github+json" \
+-H "Authorization: Bearer $TOKEN" \
+-H "X-GitHub-Api-Version: 2022-11-28" \
+https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/merge \
+-d '{"commit_title":"merge PR: ${env.PR_NUMBER}"}'
+'''
                     }
                 }
             }
@@ -377,14 +379,14 @@ pipeline {
                     def jsonPayload = groovy.json.JsonOutput.toJson([body: failureComment])
 
                     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                        sh """
-                            curl -X POST \\
-                            -H "Authorization: token $TOKEN" \\
-                            -H "Accept: application/vnd.github.v3+json" \\
-                            -H "Content-Type: application/json" \\
-                            -d '${jsonPayload}' \\
-                            https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
-                        """
+                        sh """#!/bin/bash
+curl -X POST \\
+-H \"Authorization: token $TOKEN\" \\
+-H \"Accept: application/vnd.github.v3+json\" \\
+-H \"Content-Type: application/json\" \\
+-d '${jsonPayload}' \\
+https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+"""
                     }
                 }
             }
