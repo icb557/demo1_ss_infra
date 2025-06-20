@@ -123,14 +123,15 @@ terraform show -no-color tfplan > plan.txt
                             """
                             def gistResponse = ""
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+                                writeFile file: 'gist.json', text: gistContent
                                 gistResponse = sh(
-                                    script: """#!/bin/bash
-curl -X POST \\
--H \"Authorization: token $TOKEN\" \\
--H \"Accept: application/vnd.github.v3+json\" \\
--d '${gistContent}' \\
-https://api.github.com/gists
-""",
+                                    script: '''#!/bin/bash
+curl -X POST \
+  -H "Authorization: token $TOKEN" \
+  -H "Accept: application/vnd.github.v3+json" \
+  -d @gist.json \
+  https://api.github.com/gists
+''',
                                     returnStdout: true
                                 ).trim()
                             }
@@ -156,14 +157,15 @@ https://api.github.com/gists
                             def jsonPayload = groovy.json.JsonOutput.toJson([body: prComment])
 
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                                sh """#!/bin/bash
-curl -X POST \\
--H \"Authorization: token $TOKEN\" \\
--H \"Accept: application/vnd.github.v3+json\" \\
--H \"Content-Type: application/json\" \\
--d '${jsonPayload}' \\
-https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
-"""
+                                writeFile file: 'comment.json', text: jsonPayload
+                                sh '''#!/bin/bash
+curl -X POST \
+  -H "Authorization: token $TOKEN" \
+  -H "Accept: application/vnd.github.v3+json" \
+  -H "Content-Type: application/json" \
+  -d @comment.json \
+  https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+'''
                             }
                             // Store Gist URL as environment variable for later stages
                             env.PLAN_GIST_URL = gistUrl
@@ -191,8 +193,8 @@ https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/
                         withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
                             def commentsResponse = sh(
                                 script: """
-                                    curl -s -H "Authorization: token $TOKEN" \\
-                                    -H "Accept: application/vnd.github.v3+json" \\
+                                    curl -s -H "Authorization: token $TOKEN" \
+                                    -H "Accept: application/vnd.github.v3+json" \
                                     https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
                                 """,
                                 returnStdout: true
@@ -273,14 +275,15 @@ terraform apply \
                             def jsonPayload = groovy.json.JsonOutput.toJson([body: applyComment])
                             
                             withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                                sh """#!/bin/bash
-curl -X POST \\
--H \"Authorization: token $TOKEN\" \\
--H \"Accept: application/vnd.github.v3+json\" \\
--H \"Content-Type: application/json\" \\
--d '${jsonPayload}' \\
-https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
-"""
+                                writeFile file: 'comment.json', text: jsonPayload
+                                sh '''#!/bin/bash
+curl -X POST \
+  -H "Authorization: token $TOKEN" \
+  -H "Accept: application/vnd.github.v3+json" \
+  -H "Content-Type: application/json" \
+  -d @comment.json \
+  https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+'''
                             }
                         }
                     }
@@ -379,14 +382,15 @@ https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/pulls/${env.PR_NUMBER}/m
                     def jsonPayload = groovy.json.JsonOutput.toJson([body: failureComment])
 
                     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-                        sh """#!/bin/bash
-curl -X POST \\
--H \"Authorization: token $TOKEN\" \\
--H \"Accept: application/vnd.github.v3+json\" \\
--H \"Content-Type: application/json\" \\
--d '${jsonPayload}' \\
-https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
-"""
+                        writeFile file: 'comment.json', text: jsonPayload
+                        sh '''#!/bin/bash
+curl -X POST \
+  -H "Authorization: token $TOKEN" \
+  -H "Accept: application/vnd.github.v3+json" \
+  -H "Content-Type: application/json" \
+  -d @comment.json \
+  https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${env.PR_NUMBER}/comments
+'''
                     }
                 }
             }
