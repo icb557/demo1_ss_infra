@@ -1,2 +1,4 @@
 terraform/app_infra/.terraform/
+terraform/app_infra/hosts.ini
+terraform/app_infra/db_endpoint.txt
 terraform/cicd_infra/.terraform/
