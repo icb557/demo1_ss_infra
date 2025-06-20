@@ -38,7 +38,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 sh """#!/bin/bash
-git clone -b FAD-42-task https://github.com/${REPO_OWNER}/${REPO_NAME}
+git clone https://github.com/${REPO_OWNER}/${REPO_NAME}
 echo "✅ Code downloaded"
 ls -al
 """
