@@ -139,7 +139,7 @@ pipeline {
             }
             steps {
                 script {
-                    def db_host = readFile('/var/jenkins_home/shared/db_endpoint.txt').trim()
+                    def db_host = readFile('/var/var/lib/jenkins/shared/db_endpoint.txt').trim()
                     sh """
                         infisical secrets set DB_HOST="${db_host}" \
                         --env=prod \
